@@ -1,3 +1,11 @@
+#define set_flag_if(cond, flag) \
+	if (cond) set_flag(flag); \
+	else reset_flag(flag)
+
+#define reset_flag_if(cond, flag) \
+	if (cond) reset_flag(flag); \
+	else set_flag(flag)
+
 #define for_each_register(opA, opB, opC, opD, opE, opH, opL, macro) \
 	macro(opA, A) \
 	macro(opB, B) \
@@ -6,6 +14,12 @@
 	macro(opE, E) \
 	macro(opH, H) \
 	macro(opL, L)
+
+#define for_each_register16(opBC, opDE, opHL, opSP, macro) \
+	macro(opBC, BC) \
+	macro(opDE, DE) \
+	macro(opHL, HL) \
+	macro(opSP, SP) 
 
 #define LD_reg_nn(opcode, reg) \
 	case opcode: \
@@ -58,9 +72,9 @@
 		regs.A = static_cast<u8>(res); \
 		\
 		reset_flag(ADD_SUB_FLAG); \
-		if (res > 0xFF)      set_flag(CARRY_FLAG); \
-		if (regs.A == 0)     set_flag(ZERO_FLAG);  \
-		if (half_res > 0x0F) set_flag(HALF_CARRY_FLAG); \
+		set_flag_if (res > 0xFF,      CARRY_FLAG); \
+		set_flag_if (regs.A == 0,     ZERO_FLAG);  \
+		set_flag_if (half_res > 0x0F, HALF_CARRY_FLAG); \
 		break; \
 	}
 
@@ -72,10 +86,135 @@
 		regs.A = static_cast<u8>(res); \
 		\
 		reset_flag(ADD_SUB_FLAG); \
-		if (res > 0xFF)      set_flag(CARRY_FLAG); \
-		if (regs.A == 0)     set_flag(ZERO_FLAG);  \
-		if (half_res > 0x0F) set_flag(HALF_CARRY_FLAG); \
+		set_flag_if (res > 0xFF,      CARRY_FLAG); \
+		set_flag_if (regs.A == 0,     ZERO_FLAG);  \
+		set_flag_if (half_res > 0x0F, HALF_CARRY_FLAG); \
 		break; \
 	}
+
+#define SUB_reg(opcode, reg) \
+	case opcode: { \
+		int res = regs.A - regs.reg; \
+		int half_res = (regs.A & 0x0F) - (regs.reg & 0x0F); \
+		regs.A = static_cast<u8>(res); \
+		set_flag(ADD_SUB_FLAG); \
+		set_flag_if (res < 0,      CARRY_FLAG); \
+		set_flag_if (res == 0,     ZERO_FLAG); \
+		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		break; \
+	}
+
+#define SBC_reg(opcode, reg) \
+	case opcode: { \
+		int carry = (check_flag(CARRY_FLAG)? 1 : 0); \
+		int res = regs.A - regs.reg - carry; \
+		int half_res = (regs.A & 0x0F) - (regs.reg & 0x0F) - carry; \
+		regs.A = static_cast<u8>(res); \
+		set_flag(ADD_SUB_FLAG); \
+		set_flag_if (res < 0,      CARRY_FLAG); \
+		set_flag_if (res == 0,     ZERO_FLAG); \
+		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		break; \
+	}
+
+#define AND_reg(opcode, reg) \
+	case opcode: { \
+		regs.A &= regs.reg; \
+		if (regs.A == 0) set_flag(ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		set_flag(HALF_CARRY_FLAG); \
+		reset_flag(CARRY_FLAG); \
+		break; \
+	}
+
+#define OR_reg(opcode, reg) \
+	case opcode: { \
+		regs.A |= regs.reg; \
+		if (regs.A == 0) set_flag(ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		reset_flag(CARRY_FLAG); \
+		break; \
+	}
+
+#define XOR_reg(opcode, reg) \
+	case opcode: { \
+		regs.A ^= regs.reg; \
+		if (regs.A == 0) set_flag(ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		reset_flag(CARRY_FLAG); \
+		break; \
+	}
+
+#define CP_reg(opcode, reg) \
+	case opcode: { \
+		int res = regs.A - regs.reg; \
+		int half_res = (regs.A & 0x0F) - (regs.reg & 0x0F); \
+		set_flag(ADD_SUB_FLAG); \
+		set_flag_if (res < 0,      CARRY_FLAG); \
+		set_flag_if (res == 0,     ZERO_FLAG); \
+		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		break; \
+	}
+
+#define INC_reg(opcode, reg) \
+	case opcode: {\
+		int half_res = (regs.reg & 0x0F) + 1; \
+		++regs.reg; \
+		reset_flag(ADD_SUB_FLAG); \
+		set_flag_if (regs.reg == 0,   ZERO_FLAG); \
+		set_flag_if (half_res > 0x0F, HALF_CARRY_FLAG); \
+		break; \
+	}
+
+#define DEC_reg(opcode, reg) \
+	case opcode: {\
+		int half_res = (regs.reg & 0x0F) - 1; \
+		--regs.reg; \
+		set_flag(ADD_SUB_FLAG); \
+		set_flag_if (regs.reg == 0, ZERO_FLAG); \
+		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		break; \
+	}
+
+		
+#define ADD_HL_reg16(opcode, reg16) \
+	case opcode: {\
+		int res = regs.HL + regs.reg16; \
+		int half_res = (regs.HL & 0xFFF) + (regs.reg16 & 0xFFF); \
+		regs.HL = static_cast<u16>(res); \
+		reset_flag(ADD_SUB_FLAG); \
+		set_flag_if (res == 0,         ZERO_FLAG); \
+		set_flag_if (half_res > 0xFFF, HALF_CARRY_FLAG); \
+		set_flag_if (res > 0xFFFF,     CARRY_FLAG); \
+		break; \
+	}
+
+#define INC_reg16(opcode, reg16) \
+	case opcode: \
+		++regs.reg16; \
+		break;
+
+#define DEC_reg16(opcode, reg16) \
+	case opcode: \
+		--regs.reg16; \
+		break;
+
+#define SWAP_reg(opcode, reg) \
+	case opcode: \
+		regs.reg = ((regs.reg & 0x0F)<<4) | ((regs.reg & 0xF0)>> 4); \
+		set_flag_if (regs.reg == 0, ZERO_FLAG); \
+		reset_flag(CARRY_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		break;
+
+
+
+
+
+
+
 
 
