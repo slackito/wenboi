@@ -4,6 +4,7 @@
 #include "GBRom.h"
 #include "GBMemory.h"
 #include "MBC.h"
+#include "logger.h"
 #include <string>
 #include <cstring>
 
@@ -97,12 +98,14 @@ class GameBoy
 GameBoy::GameBoy(std::string rom_name):
 	rom(0), regs(), IME(1), HALT(0)
 {
+	logger.info("GameBoy init");
 	rom = read_gbrom(rom_name);
 	reset();
 }
 
 void GameBoy::reset()
 {
+	logger.info("GameBoy reset");
 	std::memcpy(memory, rom->data, 16384);
 	regs.PC = 0x100;
 }
@@ -582,6 +585,17 @@ void GameBoy::run_cycle()
 		case 0x76:
 			HALT = true;
 			break;
+
+		// STOP
+		case 0x10:
+			int sub_opcode = memory[regs.PC++];
+			if (sub_opcode == 0x00) {
+				HALT = true;
+			} else {
+				logger.critical("Unknown sub-opcode after 0x10");
+			}
+
+
 
 
 
