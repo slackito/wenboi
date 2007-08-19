@@ -49,8 +49,8 @@ GBRom *read_gbrom(std::string filename)
 	is.seekg(0,ios::beg);
 
 	void *buffer = ::operator new(length);
-	is.read((char*)buffer, length);
-	GBRom *rom = (GBRom*) buffer;
+	is.read(reinterpret_cast<char*>(buffer), length);
+	GBRom *rom = reinterpret_cast<GBRom*>(buffer);
 
 	char buf[17];
 	std::memcpy(buf, rom->header.old_title, 16);
