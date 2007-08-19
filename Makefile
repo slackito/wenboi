@@ -1,7 +1,7 @@
 CXXFLAGS=-g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast \
 	 -Woverloaded-virtual 
 
-all: gbcore.o MBC.o GBMemory.o Logger.o GBRom.o
+all: gbcore.o MBC.o GBMemory.o Logger.o GBRom.o tests
 
 tests: tests/test_gbrom
 

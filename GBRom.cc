@@ -15,23 +15,35 @@ void log_rom_header(GBRom *rom, Logger::log_level level)
 {
 	std::ostringstream out;
 
+	out << "Logging ROM header data:" << endl;
+
 	out << std::hex << std::right << std::setfill('0');
 	out << "Entrypoint: 0x" << rom->header.entry_point << endl;
-	out << "New licensee code: 0x" << std::setw(2) << 
-		int(rom->header.new_licensee_code[0]) << std::setw(2) << 
-		int(rom->header.new_licensee_code[1]) << endl;
 
-	out << "SGB flag: " << int(rom->header.sgb_flag) << endl;
+	out << "SGB flag: "       << int(rom->header.sgb_flag) << endl;
 	out << "Cartridge type: " << int(rom->header.cartridge_type) << endl;
 	out << std::dec;
 	out << "ROM size: " << (32 << int(rom->header.rom_size)) << "K" << endl;
 	out << "RAM size: " << int(rom->header.ram_size) << endl;
-	out << "Destination code: " << int(rom->header.destination_code) << endl;
-	out << "Old licensee code: " << int(rom->header.old_licensee_code) << endl;
-	out << "Mask ROM version number: " << int(rom->header.mask_rom_version_number) << endl;
 	out << std::hex;
-	out << "Header checksum: " << std::setw(2) << int(rom->header.header_checksum) << endl;
-	out << "Global checksum: " << std::setw(2) << 
+	out << "Destination code: 0x"        << std::setw(2) << int(rom->header.destination_code) << endl;
+	if (rom->header.old_licensee_code == 0x33) {
+		out << "-- ROM uses new licensee code field --" << endl;
+		out << "New licensee code: 0x" << std::setw(2) << 
+			int(rom->header.new_licensee_code[0]) << std::setw(2) << 
+			int(rom->header.new_licensee_code[1]) << endl;
+	} else {
+		out << "Old licensee code: 0x"       << std::setw(2) << int(rom->header.old_licensee_code) << endl;
+	}
+	if (rom->header.cgb_flag == 0x80)
+		out << "-- ROM supports Color GameBoy functions --" << endl;
+
+	if (rom->header.cgb_flag == 0xC0)
+		out << "-- ROM is for Color GameBoy only --" << endl;
+
+	out << "Mask ROM version number: 0x" << std::setw(2) << int(rom->header.mask_rom_version_number) << endl;
+	out << "Header checksum: 0x"         << std::setw(2) << int(rom->header.header_checksum) << endl;
+	out << "Global checksum: 0x"         << std::setw(2) << 
 		int(rom->header.global_checksum[0]) << std::setw(2) <<  
 		int(rom->header.global_checksum[1]) << endl;
 
