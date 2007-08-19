@@ -1,6 +1,7 @@
 #include "GBMemory.h"
 #include "MBC.h"
 #include "gbcore.h"
+#include "Logger.h"
 
 u8& GBMemory::operator[](unsigned int addr)
 {

@@ -2,7 +2,7 @@
 
 #include "GBRom.h"
 #include "MBC.h"
-#include "logger.h"
+#include "Logger.h"
 #include <string>
 #include <cstring>
 
