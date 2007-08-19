@@ -4,7 +4,7 @@
 #include "sized_types.h"
 #include <string>
 
-namespace cartrigde_types {
+namespace cartridge_types {
 	const u8 ROM_ONLY=0x00;
 	const u8 MBC1=0x01;
 	const u8 MBC1_RAM=0x02;

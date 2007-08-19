@@ -12,9 +12,6 @@ class Logger
 		static Logger instance;
 
 	public:
-		static Logger& getInstance() { return instance; }
-		Logger(std::ostream& os): out(os) {}
-
 		enum log_level{
 			OFF = -1,
 			CRITICAL=0,
@@ -24,6 +21,11 @@ class Logger
 			DEBUG=4,
 			TRACE=5
 		};
+
+		static Logger& getInstance() { return instance; }
+		Logger(std::ostream& os): 
+			out(os), 
+			current_log_level(TRACE) {}
 
 		log_level current_log_level;
 
@@ -40,6 +42,8 @@ class Logger
 		void info    (std::string str) { log(INFO    , str); }
 		void debug   (std::string str) { log(DEBUG   , str); }
 		void trace   (std::string str) { log(TRACE   , str); }
+
+		void set_log_level (log_level level) { current_log_level = level; }
 };
 
 #define logger Logger::getInstance()

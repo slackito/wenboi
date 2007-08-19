@@ -1,112 +1,26 @@
 #include "gbcore.h"
 
-#include "sized_types.h"
 #include "GBRom.h"
-#include "GBMemory.h"
 #include "MBC.h"
 #include "logger.h"
 #include <string>
 #include <cstring>
 
-class MBC
-{
-	virtual u8 read_byte() const=0;
-	virtual void write_byte(u8)=0;
-};
-
-class GBMemory
-{
-	MBC *mbc;
-	                // 0000-3FFF: ROM Bank 0 (in cart)
-			// 4000-7FFF: Switchable ROM Bank (in cart)
-	u8 VRAM[8192];  // 8000-9FFF: Video RAM
-			// A000-BFFF: External RAM (in cart, switchable)
-	u8 WRAM0[4096]; // C000-CFFF: Work RAM Bank 0
-	u8 WRAM1[4096]; // D000-DFFF: Work RAM Bank 1 (TODO: In GBC mode switchable bank 1-7)
-			// E000-FDFF: ECHO: Same as C000-DDFF
-	u8 OAM[160];    // FE00-FE9F: Sprite Attribute Table
-	u8 HRAM[126];   // FF80-FFFE: High RAM
-
-	public:
-	GBMemory(): mbc(0) {}
-	void init(MBC *mbc) { this->mbc = mbc; }
-
-
-	int& operator[](int index)=0;
-	int  operator[](int index) const=0;
-
-};
-
-class GameBoy
-{
-	GBMemory memory;
-	GBRom *rom;
-
-	enum flags_enum
-	{
-		ZERO_FLAG=0x80,
-		ADD_SUB_FLAG=0x40,
-		HALF_CARRY_FLAG=0x20,
-		CARRY_FLAG=0x10,
-	};
-
-	// CPU Registers
-	// ENDIANNESS WARNING!
-	struct 
-	{
-		union 
-		{
-			u16 AF;
-			struct { u8 flags; u8 A; };
-		};
-		union 
-		{
-			u16 BC;
-			struct { u8 C; u8 B; };
-		};
-		union 
-		{
-			u16 DE;
-			struct { u8 E; u8 D; };
-		};
-		union 
-		{
-			u16 HL;
-			struct { u8 L; u8 H; };
-		};
-		u16 SP;
-		u16 PC;
-
-	} __attribute__((packed)) regs;
-
-	u8 IME; // Interrupt master enable flag
-	u8 HALT; // Is the CPU halted waiting for an interrupt?
-
-	void set_flag(const u8 f) { regs.flags |= f; }
-	void reset_flag(const u8 f) { regs.flags &= (~f); }
-	bool check_flag(const u8 f) { return (regs.flags & f != 0); }
-
-	public:
-	GameBoy(std::string rom_name);
-
-	void reset();
-	void run_cycle();
-	void run();
-
-};
-
 GameBoy::GameBoy(std::string rom_name):
-	rom(0), regs(), IME(1), HALT(0)
+	memory(this),rom(0), regs(), IO(), IME(1), HALT(0)
 {
 	logger.info("GameBoy init");
 	rom = read_gbrom(rom_name);
+
+	MBC *mbc = create_MBC(rom);
+	memory.init(mbc);
+	
 	reset();
 }
 
 void GameBoy::reset()
 {
 	logger.info("GameBoy reset");
-	std::memcpy(memory, rom->data, 16384);
 	regs.PC = 0x100;
 }
 
@@ -235,7 +149,7 @@ void GameBoy::run_cycle()
 		// LD HL, SP+n
 		// LDHL SP, n
 		case 0xF8: {
-			s8 offset = *(reinterpret_cast<s8*>(memory+regs.PC++));
+			s8 offset = memory[regs.PC++];
 			int res = regs.SP + offset;
 			
 			// TODO: Verificar si los flags van asi
@@ -488,7 +402,7 @@ void GameBoy::run_cycle()
 		// ADD SP, #
 		case 0xE8: {
 			// FIXME: No se que hacer con el half carry, en 4 o en 11?
-			int n = *(reinterpret_cast<s8*>(memory+regs.PC++));
+			int n = static_cast<s8>(memory[regs.PC++]);
 			int res = regs.SP + n;
 			regs.SP = static_cast<u8>(res);
 			reset_flag(ZERO_FLAG);

@@ -2,10 +2,13 @@
 #define GBMEMORY_H
 
 #include "sized_types.h"
-#include "MBC.h"
+
+class GameBoy;
+class MBC;
 
 class GBMemory
 {
+	GameBoy *core;
 	MBC *mbc;
 	                // 0000-3FFF: ROM Bank 0 (in cart)
 			// 4000-7FFF: Switchable ROM Bank (in cart)
@@ -18,12 +21,12 @@ class GBMemory
 	u8 HRAM[126];   // FF80-FFFE: High RAM
 
 	public:
-	GBMemory(): mbc(0) {}
+	GBMemory(GameBoy *core): core(core), mbc(0) {}
 	void init(MBC *mbc) { this->mbc = mbc; }
 
 
-	int& operator[](int index)=0;
-	int  operator[](int index) const=0;
+	u8& operator[](unsigned int addr);
+	u8  operator[](unsigned int addr) const;
 
 };
 
