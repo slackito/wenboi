@@ -18,7 +18,8 @@ void log_rom_header(GBRom *rom, Logger::log_level level)
 	out << "Logging ROM header data:" << endl;
 
 	out << std::hex << std::right << std::setfill('0');
-	out << "Entrypoint: 0x" << rom->header.entry_point << endl;
+	out << "Entrypoint: 0x" << std::setw(8) << 
+		rom->header.entry_point << endl;
 
 	out << "SGB flag: "       << int(rom->header.sgb_flag) << endl;
 	out << "Cartridge type: " << int(rom->header.cartridge_type) << endl;

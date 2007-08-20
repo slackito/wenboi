@@ -3,11 +3,18 @@
 #include "GBRom.h"
 #include "MBC.h"
 #include "Logger.h"
+#include <sstream>
+#include <iomanip>
 #include <string>
 #include <cstring>
 
 GameBoy::GameBoy(std::string rom_name):
-	memory(this),rom(0), regs(), IO(), IME(1), HALT(0)
+	memory(this),
+	rom(0),
+	regs(),
+	IME(1),
+	HALT(0),
+	cycle_count(0)
 {
 	logger.info("GameBoy init");
 	rom = read_gbrom(rom_name);
@@ -30,11 +37,11 @@ void GameBoy::run_cycle()
 {
 	int prefix;
 	int opcode;
-	opcode = memory[regs.PC++];
+	opcode = memory.read(regs.PC++);
 	if (opcode == 0xCB)
 	{
 		prefix=opcode;
-		opcode=memory[regs.PC++];
+		opcode=memory.read(regs.PC++);
 	}
 
 	switch(opcode)
@@ -58,86 +65,86 @@ void GameBoy::run_cycle()
 		for_each_register(0x77, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, LD__HL__reg)
 		
 		case 0x36: // LD (HL), n
-			memory[regs.HL] = memory[regs.PC++];
+			memory.write(regs.HL, memory.read(regs.PC++));
 			break;
 		
 		// LD A, mem
 		case 0x0A: // LD A, (BC)
-			regs.A = memory[regs.BC];
+			regs.A = memory.read(regs.BC);
 			break;
 		case 0x1A: // LD A, (DE)
-			regs.A = memory[regs.DE];
+			regs.A = memory.read(regs.DE);
 			break;
 		case 0xFA: // LD A, (nn)
-			regs.A = memory[memory[regs.PC] + memory[regs.PC+1]<<8];
+			regs.A = memory.read(memory.read(regs.PC) + memory.read(regs.PC+1)<<8);
 			regs.PC+=2;
 			break;
 		
 		// LD mem, A
 		case 0x02: // LD (BC), A
-			memory[regs.BC] = regs.A;
+			memory.write(regs.BC, regs.A);
 			break;
 		case 0x12: // LD (DE), A
-			memory[regs.DE] = regs.A;
+			memory.write(regs.DE, regs.A);
 			break;
 		case 0xEA: // LD (nn), A
-			memory[memory[regs.PC] + memory[regs.PC+1]<<8] = regs.A;
+			memory.write(memory.read(regs.PC) + memory.read(regs.PC+1)<<8, regs.A);
 			break;
 
 		// LD A, (C)
 		case 0xF2:
-			regs.A = memory[0xFF00 + regs.C];
+			regs.A = memory.read(0xFF00 + regs.C);
 			break;
 		// LD (C), A
 		case 0xE2:
-			memory[0xFF00 + regs.C] = regs.A;
+			memory.write(0xFF00 + regs.C, regs.A);
 			break;
 
 		// LD A, (HLD); LD A, (HL-); LDD A,(HL);
 		case 0x3A:
-			regs.A = memory[regs.HL];
+			regs.A = memory.read(regs.HL);
 			--regs.HL;
 			break;
 		// LD (HLD), A; LD (HL-), A; LDD (HL), A;
 		case 0x32:
-			memory[regs.HL] = regs.A;
+			memory.write(regs.HL, regs.A);
 			--regs.HL;
 			break;
 		// LD A, (HLI); LD A, (HL+); LDI A, (HL);
 		case 0x2A:
-			regs.A = memory[regs.HL];
+			regs.A = memory.read(regs.HL);
 			++regs.HL;
 			break;
 		// LD (HLI), A; LD (HL+), A; LDI (HL), A;
 		case 0x22:
-			memory[regs.HL] = regs.A;
+			memory.write(regs.HL, regs.A);
 			++regs.HL;
 			break;
 
 		// LDH (n), A
 		case 0xE0:
-			memory[0xFF00 + regs.PC++] = regs.A;
+			memory.write(0xFF00 + regs.PC++, regs.A);
 			break;
 		// LDH A, (n)
 		case 0xF0:
-			regs.A = memory[0xFF00 + regs.PC++];
+			regs.A = memory.read(0xFF00 + regs.PC++);
 			break;
 
 		// LD n, nn
 		case 0x01: // LD BC, nn
-			regs.BC = memory[regs.PC]+(memory[regs.PC+1] << 8);
+			regs.BC = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
 			regs.PC +=2;
 			break;
 		case 0x11: // LD DE, nn
-			regs.DE = memory[regs.PC]+(memory[regs.PC+1] << 8);
+			regs.DE = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
 			regs.PC +=2;
 			break;
 		case 0x21: // LD HL, nn
-			regs.HL = memory[regs.PC]+(memory[regs.PC+1] << 8);
+			regs.HL = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
 			regs.PC +=2;
 			break;
 		case 0x31: // LD SP, nn
-			regs.SP = memory[regs.PC]+(memory[regs.PC+1] << 8);
+			regs.SP = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
 			regs.PC +=2;
 			break;
 		
@@ -149,7 +156,7 @@ void GameBoy::run_cycle()
 		// LD HL, SP+n
 		// LDHL SP, n
 		case 0xF8: {
-			s8 offset = memory[regs.PC++];
+			s8 offset = memory.read(regs.PC++);
 			int res = regs.SP + offset;
 			
 			// TODO: Verificar si los flags van asi
@@ -165,9 +172,9 @@ void GameBoy::run_cycle()
 
 		// LD (nn), SP
 		case 0x08: {
-			int addr = memory[regs.PC] + memory[regs.PC+1] << 8;
+			int addr = memory.read(regs.PC) + memory.read(regs.PC+1) << 8;
 			regs.PC += 2;
-			memory[addr] = regs.SP;
+			memory.write(addr, regs.SP);
 			break;
 			}
 
@@ -188,8 +195,8 @@ void GameBoy::run_cycle()
 		for_each_register(0x87, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, ADD_A_reg)
 		
 		case 0x86: {// ADD A, (HL)
-			int res = regs.A + memory[regs.HL];
-			int half_res = (regs.A & 0x0F) + (memory[regs.HL] & 0x0F);
+			int res = regs.A + memory.read(regs.HL);
+			int half_res = (regs.A & 0x0F) + (memory.read(regs.HL) & 0x0F);
 			regs.A = static_cast<u8>(res);
 			
 			reset_flag(ADD_SUB_FLAG);
@@ -199,7 +206,7 @@ void GameBoy::run_cycle()
 			break;
 			}
 		case 0xC6: {//ADD A, #
-			int inm = memory[regs.PC++];
+			int inm = memory.read(regs.PC++);
 			int res = regs.A + inm;
 			int half_res = (regs.A & 0x0F) + (inm & 0x0F);
 			regs.A = static_cast<u8>(res);
@@ -216,8 +223,8 @@ void GameBoy::run_cycle()
 
 		case 0x8E: {// ADC A, (HL)
 			int carry = (check_flag(CARRY_FLAG)? 1 : 0);
-			int res = regs.A + memory[regs.HL] + carry;
-			int half_res = (regs.A & 0x0F) + (memory[regs.HL] & 0x0F) + carry;
+			int res = regs.A + memory.read(regs.HL) + carry;
+			int half_res = (regs.A & 0x0F) + (memory.read(regs.HL) & 0x0F) + carry;
 			regs.A = static_cast<u8>(res);
 			
 			reset_flag(ADD_SUB_FLAG);
@@ -228,7 +235,7 @@ void GameBoy::run_cycle()
 			}
 		case 0xCE: {//ADC A, #
 			int carry = (check_flag(CARRY_FLAG)? 1 : 0);
-			int inm = memory[regs.PC++];
+			int inm = memory.read(regs.PC++);
 			int res = regs.A + inm + carry;
 			int half_res = (regs.A & 0x0F) + (inm & 0x0F) + carry;
 			regs.A = static_cast<u8>(res);
@@ -244,8 +251,8 @@ void GameBoy::run_cycle()
 		for_each_register(0x97, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, SUB_reg)
 
 		case 0x96: {//SUB (HL)
-			int res = regs.A - memory[regs.HL];
-			int half_res = (regs.A & 0x0F) - (memory[regs.HL] & 0x0F);
+			int res = regs.A - memory.read(regs.HL);
+			int half_res = (regs.A & 0x0F) - (memory.read(regs.HL) & 0x0F);
 			regs.A = static_cast<u8>(res);
 
 			set_flag(ADD_SUB_FLAG);
@@ -256,7 +263,7 @@ void GameBoy::run_cycle()
 			}
 		
 		case 0xD6: {//SUB #
-			int inm = memory[regs.PC++];
+			int inm = memory.read(regs.PC++);
 			int res = regs.A - inm;
 			int half_res = (regs.A & 0x0F) - (inm & 0x0F);
 			regs.A = static_cast<u8>(res);
@@ -273,8 +280,8 @@ void GameBoy::run_cycle()
 
 		case 0x9E: {//SBC (HL)
 			int carry = (check_flag(CARRY_FLAG)? 1 : 0);
-			int res = regs.A - memory[regs.HL] - carry;
-			int half_res = (regs.A & 0x0F) - (memory[regs.HL] & 0x0F) - carry;
+			int res = regs.A - memory.read(regs.HL) - carry;
+			int half_res = (regs.A & 0x0F) - (memory.read(regs.HL) & 0x0F) - carry;
 			regs.A = static_cast<u8>(res);
 
 			set_flag(ADD_SUB_FLAG);
@@ -290,7 +297,7 @@ void GameBoy::run_cycle()
 		for_each_register(0xA7, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, AND_reg)
 
 		case 0xA6: //AND (HL)
-			regs.A &= memory[regs.HL];
+			regs.A &= memory.read(regs.HL);
 			if (regs.A == 0) set_flag(ZERO_FLAG);
 			reset_flag(ADD_SUB_FLAG);
 			set_flag(HALF_CARRY_FLAG);
@@ -298,7 +305,7 @@ void GameBoy::run_cycle()
 			break;
 
 		case 0xE6: //AND inm
-			regs.A &= memory[regs.PC++];
+			regs.A &= memory.read(regs.PC++);
 			if (regs.A == 0) set_flag(ZERO_FLAG);
 			reset_flag(ADD_SUB_FLAG);
 			set_flag(HALF_CARRY_FLAG);
@@ -309,7 +316,7 @@ void GameBoy::run_cycle()
 		for_each_register(0xB7, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, OR_reg)
 
 		case 0xB6: //OR (HL)
-			regs.A |= memory[regs.HL];
+			regs.A |= memory.read(regs.HL);
 			if (regs.A == 0) set_flag(ZERO_FLAG);
 			reset_flag(ADD_SUB_FLAG);
 			reset_flag(HALF_CARRY_FLAG);
@@ -317,7 +324,7 @@ void GameBoy::run_cycle()
 			break;
 
 		case 0xF6: //OR inm
-			regs.A |= memory[regs.PC++];
+			regs.A |= memory.read(regs.PC++);
 			if (regs.A == 0) set_flag(ZERO_FLAG);
 			reset_flag(ADD_SUB_FLAG);
 			reset_flag(HALF_CARRY_FLAG);
@@ -328,7 +335,7 @@ void GameBoy::run_cycle()
 		for_each_register(0xAF, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, XOR_reg)
 
 		case 0xAE: //XOR (HL)
-			regs.A ^= memory[regs.HL];
+			regs.A ^= memory.read(regs.HL);
 			if (regs.A == 0) set_flag(ZERO_FLAG);
 			reset_flag(ADD_SUB_FLAG);
 			reset_flag(HALF_CARRY_FLAG);
@@ -336,7 +343,7 @@ void GameBoy::run_cycle()
 			break;
 
 		case 0xEE: //XOR inm
-			regs.A ^= memory[regs.PC++];
+			regs.A ^= memory.read(regs.PC++);
 			if (regs.A == 0) set_flag(ZERO_FLAG);
 			reset_flag(ADD_SUB_FLAG);
 			reset_flag(HALF_CARRY_FLAG);
@@ -347,8 +354,8 @@ void GameBoy::run_cycle()
 		for_each_register(0xBF, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, CP_reg)
 
 		case 0xBE: {//SUB (HL)
-			int res = regs.A - memory[regs.HL];
-			int half_res = (regs.A & 0x0F) - (memory[regs.HL] & 0x0F);
+			int res = regs.A - memory.read(regs.HL);
+			int half_res = (regs.A & 0x0F) - (memory.read(regs.HL) & 0x0F);
 			regs.A = static_cast<u8>(res);
 
 			set_flag(ADD_SUB_FLAG);
@@ -359,7 +366,7 @@ void GameBoy::run_cycle()
 			}
 		
 		case 0xFE: {//SUB #
-			int inm = memory[regs.PC++];
+			int inm = memory.read(regs.PC++);
 			int res = regs.A - inm;
 			int half_res = (regs.A & 0x0F) - (inm & 0x0F);
 			regs.A = static_cast<u8>(res);
@@ -375,10 +382,10 @@ void GameBoy::run_cycle()
 		for_each_register(0x3C, 0x04, 0x0C, 0x14, 0x1C, 0x24, 0x2C, INC_reg)
 
 		case 0x34: {//INC (HL)
-			int half_res = (memory[regs.HL] & 0x0F) + 1; 
-			++memory[regs.HL]; 
+			int half_res = (memory.read(regs.HL) & 0x0F) + 1; 
+			memory.write(regs.HL, memory.read(regs.HL) - 1); 
 			reset_flag(ADD_SUB_FLAG); 
-			set_flag_if (memory[regs.HL] == 0, ZERO_FLAG); 
+			set_flag_if (memory.read(regs.HL) == 0, ZERO_FLAG); 
 			set_flag_if (half_res > 0x0F,      HALF_CARRY_FLAG); 
 			break; 
 			}	
@@ -387,10 +394,10 @@ void GameBoy::run_cycle()
 		for_each_register(0x3D, 0x05, 0x0D, 0x15, 0x1D, 0x25, 0x2D, DEC_reg)
 
 		case 0x35: {//DEC (HL)
-			int half_res = (memory[regs.HL] & 0x0F) - 1; 
-			--memory[regs.HL]; 
+			int half_res = (memory.read(regs.HL) & 0x0F) - 1; 
+			memory.write(regs.HL, memory.read(regs.HL) - 1); 
 			set_flag(ADD_SUB_FLAG); 
-			set_flag_if (memory[regs.HL] == 0, ZERO_FLAG); 
+			set_flag_if (memory.read(regs.HL) == 0, ZERO_FLAG); 
 			set_flag_if (half_res < 0,         HALF_CARRY_FLAG);
 			break; 
 			}
@@ -402,7 +409,7 @@ void GameBoy::run_cycle()
 		// ADD SP, #
 		case 0xE8: {
 			// FIXME: No se que hacer con el half carry, en 4 o en 11?
-			int n = static_cast<s8>(memory[regs.PC++]);
+			int n = static_cast<s8>(memory.read(regs.PC++));
 			int res = regs.SP + n;
 			regs.SP = static_cast<u8>(res);
 			reset_flag(ZERO_FLAG);
@@ -420,16 +427,16 @@ void GameBoy::run_cycle()
 		// Miscellaneous instructions
 		// SWAP n
 		case 0xCB: {
-			int sub_opcode = memory[regs.PC++];
+			int sub_opcode = memory.read(regs.PC++);
 			switch(sub_opcode)
 			{
 				for_each_register(0x37, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, SWAP_reg)
 
 				// SWAP (HL)
 				case 0x36: {
-					u8 tmp = memory[regs.HL];
+					u8 tmp = memory.read(regs.HL);
 					tmp = ((tmp & 0x0F) << 4) | ((tmp & 0xF0)>>4);
-					memory[regs.HL] = tmp;
+					memory.write(regs.HL, tmp);
 		
 					set_flag_if(tmp==0, ZERO_FLAG);
 					reset_flag(CARRY_FLAG);
@@ -501,30 +508,215 @@ void GameBoy::run_cycle()
 			break;
 
 		// STOP
-		case 0x10:
-			int sub_opcode = memory[regs.PC++];
+		case 0x10: {
+			int sub_opcode = memory.read(regs.PC++);
 			if (sub_opcode == 0x00) {
 				HALT = true;
 			} else {
 				logger.critical("Unknown sub-opcode after 0x10");
 			}
+			break;
+		}
+		
+		// DI
+		case 0xF3:
+			IME = 0;
+			break;
 
+		// EI
+		case 0xFB:
+			IME = 1;
+			break;
+			   
+		// TODO: Rotates and shifts
+		// TODO: Bit instructions
+		
+		// Jumps
+		// JP nn
+		case 0xC3:
+			regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			break;
 
+		// JP cc, nn
+		case 0xC2: { // JP NZ, nn
+			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			if (!check_flag(ZERO_FLAG))
+				regs.PC = dst;
+			else
+				regs.PC += 2; // if !cc, skip 2 dst bytes
+			break;
+		}
 
+		case 0xCA: { // JP Z, nn
+			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			if (check_flag(ZERO_FLAG))
+				regs.PC = dst;
+			else
+				regs.PC += 2; // if !cc, skip 2 dst bytes
+			break;
+		}
 
+		case 0xD2: { // JP NC, nn
+			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			if (!check_flag(CARRY_FLAG))
+				regs.PC = dst;
+			else
+				regs.PC += 2; // if !cc, skip 2 dst bytes
+			break;
+		}
 
+		case 0xDA: { // JP C, nn
+			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			if (check_flag(CARRY_FLAG))
+				regs.PC = dst;
+			else
+				regs.PC += 2; // if !cc, skip 2 dst bytes
+			break;
+		}
 
+		// JP (HL)
+		case 0xE9:
+			regs.PC = regs.HL;
+			break;
+
+		// JR n
+		case 0x18:
+			// -1 because PC is now pointing past the opcode
+			regs.PC += static_cast<s8>(memory.read(regs.PC)) - 1;
+			break;
+
+		// JR cc, n
+		case 0x20: { // JR NZ, n
+			s8 offset = static_cast<s8>(memory.read(regs.PC++));
+			if (!check_flag(ZERO_FLAG)) // -1 because PC is now pointing past the opcode
+				regs.PC += offset;
+			break;
+		}
+
+		case 0x28: { // JR Z, n
+			s8 offset = static_cast<s8>(memory.read(regs.PC++));
+			if (check_flag(ZERO_FLAG)) // -1 because PC is now pointing past the opcode
+				regs.PC += offset;
+			break;
+		}
+
+		case 0x30: { // JR NC, n
+			s8 offset = static_cast<s8>(memory.read(regs.PC++));
+			if (!check_flag(CARRY_FLAG)) // -1 because PC is now pointing past the opcode
+				regs.PC += offset;
+			break;
+		}
+
+		case 0x38: { // JR C, n
+			s8 offset = static_cast<s8>(memory.read(regs.PC++));
+			if (check_flag(CARRY_FLAG)) // -1 because PC is now pointing past the opcode
+				regs.PC += offset;
+			break;
+		}
+
+		// Calls
+		// CALL nn
+		case 0xCD: {
+			// push, then jump
+			u16 retaddr = regs.PC+2;
+			memory.write(regs.SP-1, retaddr >> 8); // high
+			memory.write(regs.SP-2, retaddr & 0xFF); // low
+			regs.SP -= 2;
 			
+			regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			break;
+		}
 
+		// CALL cc, nn
+		case 0xC4: { // CALL NZ, nn
+			if (!check_flag(ZERO_FLAG)) {
+				// push, then jump
+				u16 retaddr = regs.PC+2;
+				memory.write(regs.SP-1, retaddr >> 8); // high
+				memory.write(regs.SP-2, retaddr & 0xFF); // low
+				regs.SP -= 2;
 
+				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			} else {
+				regs.PC += 2; // if !cc, skip 2 (nn) bytes
+			}
+		}
 
+		case 0xCC: { // CALL Z, nn
+			if (check_flag(ZERO_FLAG)) {
+				// push, then jump
+				u16 retaddr = regs.PC+2;
+				memory.write(regs.SP-1, retaddr >> 8); // high
+				memory.write(regs.SP-2, retaddr & 0xFF); // low
+				regs.SP -= 2;
 
+				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			} else {
+				regs.PC += 2; // if !cc, skip 2 (nn) bytes
+			}
+		}
 
-			
+		case 0xD4: { // CALL NC, nn
+			if (!check_flag(CARRY_FLAG)) {
+				// push, then jump
+				u16 retaddr = regs.PC+2;
+				memory.write(regs.SP-1, retaddr >> 8); // high
+				memory.write(regs.SP-2, retaddr & 0xFF); // low
+				regs.SP -= 2;
 
+				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			} else {
+				regs.PC += 2; // if !cc, skip 2 (nn) bytes
+			}
+		}
 
+		case 0xDC: { // CALL C, nn
+			if (check_flag(CARRY_FLAG)) {
+				// push, then jump
+				u16 retaddr = regs.PC+2;
+				memory.write(regs.SP-1, retaddr >> 8); // high
+				memory.write(regs.SP-2, retaddr & 0xFF); // low
+				regs.SP -= 2;
 
-	}
+				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			} else {
+				regs.PC += 2; // if !cc, skip 2 (nn) bytes
+			}
+		}
+
+		// TODO: Restarts
+		// TODO: Returns
+
+		default:
+			std::ostringstream errmsg;
+			errmsg << "Unknown opcode 0x";
+			errmsg << std::hex << std::setw(2) << std::setfill('0') << opcode;
+			errmsg << " at 0x" << std::hex << std::setw(4) << regs.PC-1;
+			errmsg << " (cycle count = " << std::dec << cycle_count << ")";
+			logger.critical(errmsg.str());
+			break;
+
+	} // end switch
+
+	std::ostringstream tracemsg;
+	tracemsg << "t = " << std::dec << cycle_count << 
+		"\tPC = " << std::hex << std::setw(4) << std::setfill('0') << regs.PC << std::endl <<
+		"A = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.A) <<
+		" B = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.B) <<
+		" C = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.C) <<
+		" D = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.D) <<
+		" E = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.E) <<
+		" H = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.H) <<
+		" L = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.L) <<
+		"\tflags = " << int(regs.flags) << "\tZF = " << check_flag(ZERO_FLAG);
+	logger.trace(tracemsg.str());
+	++cycle_count;
 
 }
+
+void GameBoy::run() 
+{
+}
+
+
 

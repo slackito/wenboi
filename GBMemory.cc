@@ -2,40 +2,50 @@
 #include "MBC.h"
 #include "gbcore.h"
 #include "Logger.h"
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 
-u8& GBMemory::operator[](unsigned int addr)
+void GBMemory::write(int addr, u8 value)
 {
-	if (addr < 0x8000)      return (*mbc)[addr];
-	else if (addr < 0xA000) return VRAM[addr-0x8000];
-	else if (addr < 0xC000) return (*mbc)[addr];
-	else if (addr < 0xD000) return WRAM0[addr-0xC000];
-	else if (addr < 0xE000) return WRAM1[addr-0xD000];
-	else if (addr < 0xFDFF) return (*mbc)[addr-0x2000];
-	else if (addr < 0xFEA0) return OAM[addr-0xFDFF];
-	else if (addr >= 0xFF00 && addr <= 0xFF7F) 
-		return core->IO.addr[addr-0xFF00];
-	else if (addr >= 0xFF80 && addr <= 0xFFFE) return HRAM[addr-0xFF80];
+	if (addr < 0x8000)      mbc->write(addr, value);
+	else if (addr < 0xA000) VRAM [addr - VRAM_BASE] = value;
+	else if (addr < 0xC000) mbc->write(addr, value);
+	else if (addr < 0xD000) WRAM0[addr - WRAM0_BASE] = value;
+	else if (addr < 0xE000) WRAM1[addr - WRAM1_BASE] = value;
+	else if (addr < 0xFDFF) write(addr-0x2000, value);
+	else if (addr < 0xFEA0) OAM  [addr - OAM_BASE] = value;
+	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
+		IO.write(addr,value);
+	}
+	else if (addr >= 0xFF80 && addr <= 0xFFFE) HRAM[addr - HRAM_BASE]=value;
 	else {
-		logger.error("Invalid write address");
-		return *(static_cast<u8*>(0));
+		std::ostringstream errmsg;
+		errmsg << "Invalid write address 0x" << 
+			std::hex << std::setw(4) << std::setfill('0') << addr;
+		logger.error(errmsg.str());
+		std::cout << *(static_cast<u8*>(0));
 	}
 }
 
 
-u8  GBMemory::operator[](unsigned int addr) const
+u8  GBMemory::read(int addr) const
 {
-	if (addr < 0x8000)      return (*mbc)[addr];
-	else if (addr < 0xA000) return VRAM[addr-0x8000];
-	else if (addr < 0xC000) return (*mbc)[addr];
-	else if (addr < 0xD000) return WRAM0[addr-0xC000];
-	else if (addr < 0xE000) return WRAM1[addr-0xD000];
-	else if (addr < 0xFDFF) return (*mbc)[addr-0x2000];
-	else if (addr < 0xFEA0) return OAM[addr-0xFDFF];
+	if (addr < 0x8000)      return mbc->read(addr);
+	else if (addr < 0xA000) return VRAM [addr - VRAM_BASE];
+	else if (addr < 0xC000) return mbc->read(addr);
+	else if (addr < 0xD000) return WRAM0[addr - WRAM0_BASE];
+	else if (addr < 0xE000) return WRAM1[addr - WRAM1_BASE];
+	else if (addr < 0xFDFF) return read(addr-0x2000);
+	else if (addr < 0xFEA0) return OAM  [addr - OAM_BASE];
 	else if (addr >= 0xFF00 && addr <= 0xFF7F) 
-		return core->IO.addr[addr-0xFF00];
-	else if (addr >= 0xFF80 && addr <= 0xFFFE) return HRAM[addr-0xFF80];
+		return IO.read(addr);
+	else if (addr >= 0xFF80 && addr <= 0xFFFE) return HRAM[addr - HRAM_BASE];
 	else {
-		logger.error("Invalid write address");
+		std::ostringstream errmsg;
+		errmsg << "Invalid read address 0x" << 
+			std::hex << std::setw(4) << std::setfill('0') << addr;
+		logger.error(errmsg.str());
 		return *(static_cast<u8*>(0));
 	}
 }

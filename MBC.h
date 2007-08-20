@@ -7,9 +7,9 @@
 class MBC
 {
 	public:
-	virtual u8  operator[](unsigned int addr) const=0;
-	virtual u8& operator[](unsigned int addr)=0;
-	virtual ~MBC();
+	virtual u8   read(int addr) const=0;
+	virtual void write(int addr, u8 value)=0;
+	virtual ~MBC() {};
 };
 
 class NoMBC: public MBC
@@ -19,8 +19,8 @@ class NoMBC: public MBC
 	
 	public:
 	NoMBC(GBRom *rom) { memcpy(ROM, rom->data, 32768); }
-	u8  operator[](unsigned int addr) const;
-	u8& operator[](unsigned int addr);
+	u8   read (int addr) const;
+	void write(int addr, u8 value);
 
 };
 

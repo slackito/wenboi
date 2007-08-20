@@ -1,6 +1,9 @@
 #include "MBC.h"
 #include "Logger.h"
 #include <cstring>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
 
 using namespace cartridge_types;
 
@@ -16,7 +19,7 @@ MBC *create_MBC(GBRom *rom)
 	}
 }
 
-u8 NoMBC::operator[](unsigned int addr) const
+u8 NoMBC::read(int addr) const
 {
 	if (addr <= 0x7FFF)
 		return ROM[addr];
@@ -27,12 +30,19 @@ u8 NoMBC::operator[](unsigned int addr) const
 	return 0;
 }
 
-u8& NoMBC::operator[](unsigned int addr) 
+void NoMBC::write(int addr, u8 value)
 {
-	if ((addr&0xE000) == 0xA000)   //(addr >= 0xA000 && addr <= 0xBFFF)
-		return RAM[addr-0xA000];
-	else
-		logger.error("NoMBC: trying to write in ROM");
-	return *(static_cast<u8*>(0)); // Shouldn't happen
+	if ((addr&0xE000) == 0xA000) //(addr >= 0xA000 && addr <= 0xBFFF)
+	{
+		RAM[addr-0xA000]=value;
+		return;
+	}
+	else 
+	{
+		std::ostringstream errmsg;
+		errmsg <<"NoMBC: trying to write in ROM, addr=0x"<<std::hex<<addr;
+		logger.error(errmsg.str());
+		std::cout << *(static_cast<u8*>(0)); // Shouldn't happen
+	}
 }
 

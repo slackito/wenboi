@@ -23,7 +23,7 @@
 
 #define LD_reg_nn(opcode, reg) \
 	case opcode: \
-		regs.reg = memory[regs.PC++]; \
+		regs.reg = memory.read(regs.PC++); \
 		break;
 
 #define LD_reg_reg(opcode, reg1, reg2) \
@@ -42,26 +42,26 @@
 // LD reg, (HL)
 #define LD_reg__HL_(opcode, reg) \
 	case opcode: \
-		regs.reg = memory[regs.HL]; \
+		regs.reg = memory.read(regs.HL); \
 		break;
 
 // LD (HL), reg
 #define LD__HL__reg(opcode, reg) \
 	case opcode: \
-		memory[regs.HL] = regs.reg; \
+		memory.write(regs.HL, regs.reg); \
 		break;
 
 #define PUSH(opcode, regH, regL) \
 	case opcode: \
-		memory[regs.SP-1] = regs.regH; \
-		memory[regs.SP-2] = regs.regL; \
+		memory.write(regs.SP-1, regs.regH); \
+		memory.write(regs.SP-2, regs.regL); \
 		regs.SP -= 2; \
 		break;
 
 #define POP(opcode, regH, regL) \
 	case opcode: \
-		regs.regL = memory[regs.SP]; \
-		regs.regH = memory[regs.SP+1]; \
+		regs.regL = memory.read(regs.SP); \
+		regs.regH = memory.read(regs.SP+1); \
 		regs.SP += 2; \
 		break;
 

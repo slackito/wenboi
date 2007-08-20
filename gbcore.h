@@ -51,22 +51,13 @@ class GameBoy
 	} __attribute__((packed)) regs;
 
 
-	union
-	{
-		struct
-		{
-		};
-
-		u8 addr[128];
-
-	} IO;
-
 	u8 IME; // Interrupt master enable flag
 	u8 HALT; // Is the CPU halted waiting for an interrupt?
+	u32 cycle_count;
 
 	void set_flag(const u8 f) { regs.flags |= f; }
 	void reset_flag(const u8 f) { regs.flags &= (~f); }
-	bool check_flag(const u8 f) { return (regs.flags & f != 0); }
+	bool check_flag(const u8 f) { return ((regs.flags & f) != 0); }
 
 	public:
 	GameBoy(std::string rom_name);
