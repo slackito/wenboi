@@ -19,6 +19,7 @@ void GBMemory::write(int addr, u8 value)
 		IO.write(addr,value);
 	}
 	else if (addr >= 0xFF80 && addr <= 0xFFFE) HRAM[addr - HRAM_BASE]=value;
+	else if (addr == 0xFFFF) IE=value;
 	else {
 		std::ostringstream errmsg;
 		errmsg << "Invalid write address 0x" << 

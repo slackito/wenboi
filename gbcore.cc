@@ -8,7 +8,8 @@
 #include <string>
 #include <cstring>
 
-GameBoy::GameBoy(std::string rom_name):
+GameBoy::GameBoy(std::string rom_name, GameBoyType type):
+	gameboy_type(type),
 	memory(this),
 	rom(0),
 	regs(),
@@ -28,7 +29,48 @@ GameBoy::GameBoy(std::string rom_name):
 void GameBoy::reset()
 {
 	logger.info("GameBoy reset");
-	regs.PC = 0x100;
+	regs.PC = 0x0100;
+	regs.AF = 0x01B0;
+	regs.BC = 0x0013;
+	regs.DE = 0x00D8;
+	regs.HL = 0x014D;
+	regs.SP = 0xFFFE;
+
+	memory.write(0xFF05, 0x00);   // TIMA
+	memory.write(0xFF06, 0x00);   // TMA
+	memory.write(0xFF07, 0x00);   // TAC
+	memory.write(0xFF10, 0x80);   // NR10
+	memory.write(0xFF11, 0xBF);   // NR11
+	memory.write(0xFF12, 0xF3);   // NR12
+	memory.write(0xFF14, 0xBF);   // NR14
+	memory.write(0xFF16, 0x3F);   // NR21
+	memory.write(0xFF17, 0x00);   // NR22
+	memory.write(0xFF19, 0xBF);   // NR24
+	memory.write(0xFF1A, 0x7F);   // NR30
+	memory.write(0xFF1B, 0xFF);   // NR31
+	memory.write(0xFF1C, 0x9F);   // NR32
+	memory.write(0xFF1E, 0xBF);   // NR33
+	memory.write(0xFF20, 0xFF);   // NR41
+	memory.write(0xFF21, 0x00);   // NR42
+	memory.write(0xFF22, 0x00);   // NR43
+	memory.write(0xFF23, 0xBF);   // NR30
+	memory.write(0xFF24, 0x77);   // NR50
+	memory.write(0xFF25, 0xF3);   // NR51
+	// NR52
+	if (gameboy_type == SUPERGAMEBOY)
+		memory.write(0xFF26, 0xF0);
+	else
+		memory.write(0xFF26, 0xF1);
+	memory.write(0xFF40, 0x91);   // LCDC
+	memory.write(0xFF42, 0x00);   // SCY
+	memory.write(0xFF43, 0x00);   // SCX
+	memory.write(0xFF45, 0x00);   // LYC
+	memory.write(0xFF47, 0xFC);   // BGP
+	memory.write(0xFF48, 0xFF);   // OBP0
+	memory.write(0xFF49, 0xFF);   // OBP1
+	memory.write(0xFF4A, 0x00);   // WY
+	memory.write(0xFF4B, 0x00);   // WX
+	memory.write(0xFFFF, 0x00);   // IE
 }
 
 #include "opcodes.h"
@@ -89,6 +131,7 @@ void GameBoy::run_cycle()
 			break;
 		case 0xEA: // LD (nn), A
 			memory.write(memory.read(regs.PC) + memory.read(regs.PC+1)<<8, regs.A);
+			regs.PC+=2;
 			break;
 
 		// LD A, (C)
@@ -122,12 +165,13 @@ void GameBoy::run_cycle()
 			break;
 
 		// LDH (n), A
-		case 0xE0:
-			memory.write(0xFF00 + regs.PC++, regs.A);
+		case 0xE0: {
+			memory.write(0xFF00 + memory.read(regs.PC++), regs.A);
 			break;
+		}
 		// LDH A, (n)
 		case 0xF0:
-			regs.A = memory.read(0xFF00 + regs.PC++);
+			regs.A = memory.read(0xFF00 + memory.read(regs.PC++));
 			break;
 
 		// LD n, nn
@@ -425,11 +469,11 @@ void GameBoy::run_cycle()
 		for_each_register16(0x0B, 0x1B, 0x2B, 0x3B, DEC_reg16)
 
 		// Miscellaneous instructions
-		// SWAP n
 		case 0xCB: {
 			int sub_opcode = memory.read(regs.PC++);
 			switch(sub_opcode)
 			{
+				// SWAP n
 				for_each_register(0x37, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, SWAP_reg)
 
 				// SWAP (HL)
@@ -442,6 +486,68 @@ void GameBoy::run_cycle()
 					reset_flag(CARRY_FLAG);
 					reset_flag(HALF_CARRY_FLAG);
 					reset_flag(ADD_SUB_FLAG);
+					break;
+				}
+
+				// RLC n
+				for_each_register(0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, RLC_reg)
+
+				// RLC (HL)
+				case 0x06: {
+					u8 value = memory.read(regs.HL);
+					u8 bit7 = value >> 7;
+					value = (value << 1) | bit7;
+					memory.write(regs.HL, value);
+					set_flag_if(value == 0, ZERO_FLAG); 
+					reset_flag(ADD_SUB_FLAG); 
+					reset_flag(HALF_CARRY_FLAG); 
+					break;
+				}
+
+				// RL n (through carry)
+				for_each_register(0x17, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, RL_reg)
+
+				// RL (HL) (through carry)
+				case 0x16: {
+					u8 value = memory.read(regs.HL);
+					u8 bit7 = value >> 7;
+					value = (value << 1) | check_flag(CARRY_FLAG);
+					memory.write(regs.HL, value);
+					set_flag_if(bit7, CARRY_FLAG);
+					set_flag_if(value == 0, ZERO_FLAG);
+					reset_flag(ADD_SUB_FLAG); 
+					reset_flag(HALF_CARRY_FLAG); 
+					break;
+				}
+
+				// RRC n
+				for_each_register(0x0F, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, RRC_reg)
+
+				// RRC (HL)
+				case 0x0E: {
+					u8 value = memory.read(regs.HL);
+					u8 bit0 = value & 1;
+					value = (value >> 1) | (bit0 << 7);
+					memory.write(regs.HL, value);
+					set_flag_if(value == 0, ZERO_FLAG); 
+					reset_flag(ADD_SUB_FLAG); 
+					reset_flag(HALF_CARRY_FLAG); 
+					break;
+				}
+
+				// RR n (through carry)
+				for_each_register(0x1F, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, RR_reg)
+
+				// RR (HL) (through carry)
+				case 0x16: {
+					u8 value = memory.read(regs.HL);
+					u8 bit0 = value & 1;
+					value = (value >> 1) | (check_flag(CARRY_FLAG) << 7);
+					memory.write(regs.HL, value);
+					set_flag_if(bit7, CARRY_FLAG);
+					set_flag_if(value == 0, ZERO_FLAG);
+					reset_flag(ADD_SUB_FLAG); 
+					reset_flag(HALF_CARRY_FLAG); 
 					break;
 				}
 			}
@@ -528,7 +634,64 @@ void GameBoy::run_cycle()
 			IME = 1;
 			break;
 			   
-		// TODO: Rotates and shifts
+		// Rotates and shifts
+		// RLCA
+		case 0x07: {
+			u8 bit7 = regs.A >>7;
+			regs.A = (regs.A << 1) | bit7;
+			set_flag_if(regs.A == 0, ZERO_FLAG);
+			reset_flag(ADD_SUB_FLAG);
+			reset_flag(HALF_CARRY_FLAG);
+			// TODO: Check which of GBCPUman.pdf or
+			// worldofspectrum z80 reference is correct
+			//
+			//set_flag_if(bit7, CARRY_FLAG);
+			break;
+		}
+
+		// RLA (through carry)
+		case 0x17: {
+			u8 bit7 = regs.A >> 7;
+			regs.A = (regs.A << 1) | check_flag(CARRY_FLAG);
+			set_flag_if(bit7, CARRY_FLAG);
+			set_flag_if(regs.A == 0, ZERO_FLAG);
+			reset_flag(ADD_SUB_FLAG);
+			reset_flag(HALF_CARRY_FLAG);
+			break;
+		}
+		
+		// RRCA
+		case 0x0F: {
+			u8 bit0 = regs.A & 1;
+			regs.A = (regs.A >> 1) | (bit0 << 7);
+			set_flag_if(regs.A == 0, ZERO_FLAG);
+			reset_flag(ADD_SUB_FLAG);
+			reset_flag(HALF_CARRY_FLAG);
+			// TODO: Check which of GBCPUman.pdf or
+			// worldofspectrum z80 reference is correct
+			//
+			//set_flag_if(bit0, CARRY_FLAG);
+			break;
+		}
+
+		// RRA (through carry)
+		case 0x1F: {
+			u8 bit0 = regs.A & 1;
+			regs.A = (regs.A >> 1) | (check_flag(CARRY_FLAG) << 7);
+			set_flag_if(bit0, CARRY_FLAG);
+			set_flag_if(regs.A == 0, ZERO_FLAG);
+			reset_flag(ADD_SUB_FLAG);
+			reset_flag(HALF_CARRY_FLAG);
+			break;
+		}
+		
+
+
+
+
+		
+
+
 		// TODO: Bit instructions
 		
 		// Jumps
@@ -684,9 +847,66 @@ void GameBoy::run_cycle()
 			}
 		}
 
-		// TODO: Restarts
-		// TODO: Returns
+		// Restarts
+		RST(0xC7, 0x00)
+		RST(0xCF, 0x08)
+		RST(0xD7, 0x10)
+		RST(0xDF, 0x18)
+		RST(0xE7, 0x20)
+		RST(0xEF, 0x28)
+		RST(0xF7, 0x30)
+		RST(0xFF, 0x38)
 
+		// Returns
+		// RET
+		case 0xC9: {
+			u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+			regs.SP += 2;
+			regs.PC = retaddr;
+		}
+
+		// RET cc
+		case 0xC0:  // RET NZ
+			if (!check_flag(ZERO_FLAG)) { 
+				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				regs.SP += 2;
+				regs.PC = retaddr;
+			}
+			break;
+
+		case 0xC8:  // RET Z
+			if (check_flag(ZERO_FLAG)) { 
+				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				regs.SP += 2;
+				regs.PC = retaddr;
+			}
+			break;
+
+		case 0xD0:  // RET NC
+			if (!check_flag(CARRY_FLAG)) { 
+				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				regs.SP += 2;
+				regs.PC = retaddr;
+			}
+			break;
+
+		case 0xD8:  // RET C
+			if (check_flag(CARRY_FLAG)) { 
+				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				regs.SP += 2;
+				regs.PC = retaddr;
+			}
+			break;
+
+		// RETI
+		case 0xD9: {
+			// RET && EI
+			u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+			regs.SP += 2;
+			regs.PC = retaddr;
+			IME=1;
+		}
+	
 		default:
 			std::ostringstream errmsg;
 			errmsg << "Unknown opcode 0x";

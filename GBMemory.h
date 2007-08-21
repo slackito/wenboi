@@ -33,6 +33,7 @@ class GBMemory
 	GBIO IO;	// FF00-FF7F: IO ports
 
 	u8 HRAM[126];   // FF80-FFFE: High RAM
+	u8 IE;		// FFFF     : Interrupt Enable
 
 	public:
 
@@ -44,7 +45,7 @@ class GBMemory
 	static const u16 IO_BASE    = 0xFF00;
 	static const u16 HRAM_BASE  = 0xFF80;
 
-	GBMemory(GameBoy *core): core(core), mbc(0), IO() {}
+	GBMemory(GameBoy *core): core(core), mbc(0), IO(), IE(0) {}
 	void init(MBC *mbc) { this->mbc = mbc; }
 
 

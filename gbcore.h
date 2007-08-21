@@ -9,6 +9,8 @@ union GBRom;
 
 class GameBoy
 {
+	enum GameBoyType { GAMEBOY, GAMEBOYCOLOR, SUPERGAMEBOY } gameboy_type;
+
 	friend class GBMemory;
 	GBMemory memory;
 	GBRom *rom;
@@ -60,7 +62,7 @@ class GameBoy
 	bool check_flag(const u8 f) { return ((regs.flags & f) != 0); }
 
 	public:
-	GameBoy(std::string rom_name);
+	GameBoy(std::string rom_name, GameBoyType type=GAMEBOY);
 
 	void reset();
 	void run_cycle();
