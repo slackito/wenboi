@@ -77,6 +77,48 @@ void GameBoy::reset()
 
 void GameBoy::run_cycle()
 {
+	// Check for interrupts before opcode fetching
+	u8 IE;
+	if (IME && (IE=memory.read(0xFFFF)))
+	{
+		u8 IF = memory.read(0xFF0F);
+		if (IF)
+		{
+			if ((IF & IRQ_VBLANK) && (IE & IRQ_VBLANK)) 
+			{
+				IME = 0;
+				IF &= (~IRQ_VBLANK);
+				do_call(0x40);
+			}
+			else if ((IF & IRQ_LCD_STAT) && (IE & IRQ_LCD_STAT))
+			{
+				IME = 0;
+				IF &= (~IRQ_LCD_STAT);
+				IF do_call(0x48);
+			} 
+			else if ((IF & IRQ_TIMER) && (IE & IRQ_TIMER))
+			{
+				IME = 0;
+				IF &= (~IRQ_TIMER);
+				do_call(0x50);
+			}
+			else if ((IF & IRQ_SERIAL) && (IE & IRQ_SERIAL))   
+			{
+				IME = 0;
+				IF &= (~IRQ_SERIAL);
+				do_call(0x58);
+			}
+			else if ((IF & IRQ_JOYPAD) && (IE & IRQ_JOYPAD))     
+			{
+				IME = 0;
+				IF &= (~IRQ_JOYPAD);
+				do_call(0x60);
+			}
+		}
+	}
+
+
+
 	int prefix;
 	int opcode;
 	opcode = memory.read(regs.PC++);
@@ -539,12 +581,12 @@ void GameBoy::run_cycle()
 				for_each_register(0x1F, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, RR_reg)
 
 				// RR (HL) (through carry)
-				case 0x16: {
+				case 0x1E: {
 					u8 value = memory.read(regs.HL);
 					u8 bit0 = value & 1;
 					value = (value >> 1) | (check_flag(CARRY_FLAG) << 7);
 					memory.write(regs.HL, value);
-					set_flag_if(bit7, CARRY_FLAG);
+					set_flag_if(bit0, CARRY_FLAG);
 					set_flag_if(value == 0, ZERO_FLAG);
 					reset_flag(ADD_SUB_FLAG); 
 					reset_flag(HALF_CARRY_FLAG); 
@@ -780,26 +822,18 @@ void GameBoy::run_cycle()
 		// Calls
 		// CALL nn
 		case 0xCD: {
-			// push, then jump
-			u16 retaddr = regs.PC+2;
-			memory.write(regs.SP-1, retaddr >> 8); // high
-			memory.write(regs.SP-2, retaddr & 0xFF); // low
-			regs.SP -= 2;
-			
-			regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			regs.PC += 2;
+			do_call(addr);
 			break;
 		}
 
 		// CALL cc, nn
 		case 0xC4: { // CALL NZ, nn
 			if (!check_flag(ZERO_FLAG)) {
-				// push, then jump
-				u16 retaddr = regs.PC+2;
-				memory.write(regs.SP-1, retaddr >> 8); // high
-				memory.write(regs.SP-2, retaddr & 0xFF); // low
-				regs.SP -= 2;
-
-				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				regs.PC += 2;
+				do_call(addr);
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}
@@ -807,13 +841,9 @@ void GameBoy::run_cycle()
 
 		case 0xCC: { // CALL Z, nn
 			if (check_flag(ZERO_FLAG)) {
-				// push, then jump
-				u16 retaddr = regs.PC+2;
-				memory.write(regs.SP-1, retaddr >> 8); // high
-				memory.write(regs.SP-2, retaddr & 0xFF); // low
-				regs.SP -= 2;
-
-				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				regs.PC += 2;
+				do_call(addr);
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}
@@ -821,13 +851,9 @@ void GameBoy::run_cycle()
 
 		case 0xD4: { // CALL NC, nn
 			if (!check_flag(CARRY_FLAG)) {
-				// push, then jump
-				u16 retaddr = regs.PC+2;
-				memory.write(regs.SP-1, retaddr >> 8); // high
-				memory.write(regs.SP-2, retaddr & 0xFF); // low
-				regs.SP -= 2;
-
-				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				regs.PC += 2;
+				do_call(addr);
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}
@@ -835,13 +861,9 @@ void GameBoy::run_cycle()
 
 		case 0xDC: { // CALL C, nn
 			if (check_flag(CARRY_FLAG)) {
-				// push, then jump
-				u16 retaddr = regs.PC+2;
-				memory.write(regs.SP-1, retaddr >> 8); // high
-				memory.write(regs.SP-2, retaddr & 0xFF); // low
-				regs.SP -= 2;
-
-				regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				regs.PC += 2;
+				do_call(addr);
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}

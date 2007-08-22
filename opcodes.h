@@ -212,10 +212,7 @@
 
 #define RST(opcode, n) \
 	case opcode: \
-		memory.write(regs.SP-1, regs.PC >> 8); \
-		memory.write(regs.SP-2, regs.PC & 0xFF); \
-		regs.SP -= 2; \
-		regs.PC = n; \
+		do_call(n); \
 		break;
 
 
@@ -224,24 +221,24 @@
 //set_flag_if(bit7, CARRY_FLAG);
 //
 #define RLC_reg(opcode, reg) \
-	case opcode: {\
+	case opcode: { \
 		u8 bit7 = regs.reg >> 7; \
 		regs.reg = (regs.reg << 1) | bit7; \
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
-		break;
+		break; \
 	}
 
 #define RL_reg(opcode, reg) \
-	case opcode: {
-		u8 bit7 = regs.reg >> 7;
-		regs.reg = (regs.reg << 1) | check_flag(CARRY_FLAG);
-		set_flag_if(bit7, CARRY_FLAG);
-		set_flag_if(value == 0, ZERO_FLAG);
-		reset_flag(ADD_SUB_FLAG); 
-		reset_flag(HALF_CARRY_FLAG); 
-		break;
+	case opcode: { \
+		u8 bit7 = regs.reg >> 7; \
+		regs.reg = (regs.reg << 1) | check_flag(CARRY_FLAG); \
+		set_flag_if(bit7, CARRY_FLAG); \
+		set_flag_if(regs.reg == 0, ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		break; \
 	}
 
 // TODO: Check which of GBCPUman.pdf or
@@ -249,24 +246,24 @@
 //set_flag_if(bit7, CARRY_FLAG);
 //
 #define RRC_reg(opcode, reg) \
-	case opcode: {\
+	case opcode: { \
 		u8 bit0 = regs.reg & 1; \
 		regs.reg = (regs.reg >> 1) | (bit0 << 7); \
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
-		break;
+		break; \
 	}
 
 #define RR_reg(opcode, reg) \
-	case opcode: {
-		u8 bit0 = regs.reg & 1;
-		regs.reg = (regs.reg >> 1) | (check_flag(CARRY_FLAG) << 7);
-		set_flag_if(bit7, CARRY_FLAG);
-		set_flag_if(value == 0, ZERO_FLAG);
-		reset_flag(ADD_SUB_FLAG); 
-		reset_flag(HALF_CARRY_FLAG); 
-		break;
+	case opcode: { \
+		u8 bit0 = regs.reg & 1; \
+		regs.reg = (regs.reg >> 1) | (check_flag(CARRY_FLAG) << 7); \
+		set_flag_if(bit0, CARRY_FLAG); \
+		set_flag_if(regs.reg == 0, ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		break; \
 	}
 
 

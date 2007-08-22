@@ -10,18 +10,26 @@ union GBRom;
 class GameBoy
 {
 	enum GameBoyType { GAMEBOY, GAMEBOYCOLOR, SUPERGAMEBOY } gameboy_type;
+	enum InterruptRequest { 
+		IRQ_VBLANK   = 0x00, 
+		IRQ_LCD_STAT = 0x10,
+		IRQ_TIMER    = 0x20, 
+		IRQ_SERIAL   = 0x40,
+		IRQ_JOYPAD   = 0x80
+	};
+	
+	enum Flag
+	{
+		ZERO_FLAG       = 0x80,
+		ADD_SUB_FLAG    = 0x40,
+		HALF_CARRY_FLAG = 0x20,
+		CARRY_FLAG      = 0x10,
+	};
+
 
 	friend class GBMemory;
 	GBMemory memory;
 	GBRom *rom;
-
-	enum flags_enum
-	{
-		ZERO_FLAG=0x80,
-		ADD_SUB_FLAG=0x40,
-		HALF_CARRY_FLAG=0x20,
-		CARRY_FLAG=0x10,
-	};
 
 	// CPU Registers
 	// ENDIANNESS WARNING!
@@ -55,15 +63,25 @@ class GameBoy
 
 	u8 IME; // Interrupt master enable flag
 	u8 HALT; // Is the CPU halted waiting for an interrupt?
-	u32 cycle_count;
 
-	void set_flag(const u8 f) { regs.flags |= f; }
-	void reset_flag(const u8 f) { regs.flags &= (~f); }
-	bool check_flag(const u8 f) { return ((regs.flags & f) != 0); }
+	u32 cycle_count;
+	
+	inline void do_call(u16 addr)
+	{
+		memory.write(regs.SP-1, regs.PC >> 8); 
+		memory.write(regs.SP-2, regs.PC & 0xFF); 
+		regs.SP -= 2; 
+		regs.PC = addr; 
+	}
+
+	void set_flag  (Flag f) { regs.flags |= f; }
+	void reset_flag(Flag f) { regs.flags &= (~f); }
+	bool check_flag(Flag f) { return ((regs.flags & f) != 0); }
 
 	public:
 	GameBoy(std::string rom_name, GameBoyType type=GAMEBOY);
 
+	void irq(InterruptRequest i) { memory.write(0xFFFF, memory.read(0xFFFF) | i); }
 	void reset();
 	void run_cycle();
 	void run();
