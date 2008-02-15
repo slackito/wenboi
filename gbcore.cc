@@ -94,7 +94,7 @@ void GameBoy::run_cycle()
 			{
 				IME = 0;
 				IF &= (~IRQ_LCD_STAT);
-				IF do_call(0x48);
+				do_call(0x48);
 			} 
 			else if ((IF & IRQ_TIMER) && (IE & IRQ_TIMER))
 			{
