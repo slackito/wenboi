@@ -76,8 +76,15 @@ GBRom *read_gbrom(std::string filename)
 }
 
 #ifdef TEST_GBROM
+
+#include <cstdlib>
+
 int main(int argc, char *argv[])
 {
+	if (argc != 2) {
+		std::cout << "Usage: " << argv[0] << " romname" << std::endl;
+		std::exit(EXIT_FAILURE);
+	}
 	GBRom *rom=read_gbrom(argv[1]);
 }
 #endif
