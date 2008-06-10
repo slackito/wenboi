@@ -2,11 +2,14 @@ CXXFLAGS=-g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast \
 	 -Woverloaded-virtual 
 LDFLAGS=-g
 
-all: gbcore.o MBC.o GBMemory.o Logger.o GBRom.o 
+all: gbcore.o MBC.o GBMemory.o Logger.o GBRom.o GBVideo.o
 
 tests: tests/test_gbrom tests/test_core
 
 Logger.o: Logger.cc Logger.h
+	g++ $(CXXFLAGS) -c -o $@ $<
+
+GBVideo.o: GBVideo.cc GBVideo.h Logger.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 
 GBMemory.o: GBMemory.cc GBMemory.h Logger.h
