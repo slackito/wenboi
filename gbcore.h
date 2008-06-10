@@ -3,6 +3,7 @@
 
 #include "sized_types.h"
 #include "GBMemory.h"
+#include "GBVideo.h"
 #include <string>
 
 union GBRom;
@@ -29,6 +30,7 @@ class GameBoy
 
 	friend class GBMemory;
 	GBMemory memory;
+	GBVideo video;
 	GBRom *rom;
 
 	// CPU Registers
