@@ -29,6 +29,7 @@ class GameBoy
 
 
 	friend class GBMemory;
+	friend class GBVideo;
 	GBMemory memory;
 	GBVideo video;
 	GBRom *rom;
