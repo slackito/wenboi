@@ -41,7 +41,8 @@ class GBMemory
 	u8 WRAM0[4096]; // C000-CFFF: Work RAM Bank 0
 	u8 WRAM1[4096]; // D000-DFFF: Work RAM Bank 1 (TODO: In GBC mode switchable bank 1-7)
 			// E000-FDFF: ECHO: Same as C000-DDFF
-			// FE00-FE9F: Sprite Attribute Table
+			// FE00-FE9F: Sprite Attribute Table (OAM)
+			// FEA0-FEFF: Not usable
 	GBIO IO;	// FF00-FF7F: IO ports
 
 	u8 HRAM[126];   // FF80-FFFE: High RAM

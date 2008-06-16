@@ -13,7 +13,7 @@ void GBMemory::write(int addr, u8 value)
 	else if (addr < 0xC000) mbc->write(addr, value);
 	else if (addr < 0xD000) WRAM0[addr - WRAM0_BASE] = value;
 	else if (addr < 0xE000) WRAM1[addr - WRAM1_BASE] = value;
-	else if (addr < 0xFDFF) write(addr-0x2000, value);
+	else if (addr < 0xFE00) write(addr-0x2000, value);
 	else if (addr < 0xFEA0) core->video.write_OAM (addr, value);
 	else if (addr >= 0xFF00 && addr <= 0xFF7F) {
 		IO.write(addr,value);
