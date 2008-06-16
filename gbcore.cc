@@ -11,7 +11,7 @@
 GameBoy::GameBoy(std::string rom_name, GameBoyType type):
 	gameboy_type(type),
 	memory(this),
-	video(),
+	video(this),
 	rom(0),
 	regs(),
 	IME(1),
