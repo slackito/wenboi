@@ -25,8 +25,8 @@ class GBIO
 	static const u16 OBP1 = 0xFF49; // Object Pallete 1 data(R/W)
 	static const u16 DMA  = 0xFF46; // DMA Transfer & Start addr (W)
 
-	u8   read(int addr) const { return ports[addr-IO_BASE]; }
-	void write(int addr, u8 value) { ports[addr-IO_BASE] = value; }
+	u8   read(int addr) const;
+	void write(int addr, u8 value);
 
 };
 

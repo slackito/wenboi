@@ -5,6 +5,16 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+	
+u8   GBIO::read(int addr) const
+{
+	return ports[addr-IO_BASE];
+}
+
+void GBIO::write(int addr, u8 value)
+{
+	ports[addr-IO_BASE] = value;
+}
 
 void GBMemory::write(int addr, u8 value)
 {
