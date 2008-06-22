@@ -64,11 +64,11 @@ int main(int argc, char **argv)
 			{
 				case 0:
 					start = gb.regs.PC;
-					end = start + 256;
+					end = start + 30;
 					break;
 				case 1:
 					start = atoi(arguments[0].c_str());
-					end = start + 256;
+					end = start + 30;
 					break;
 				case 2:
 				default:
@@ -84,7 +84,12 @@ int main(int argc, char **argv)
 				int len;
 				gb.disassemble_opcode(pos, ins, len);
 				cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << 
-						pos << "\t" << ins << endl;
+						pos << "\t";
+				for (int i=0; i<len; i++)
+					cout << std::setw(2) << int(gb.memory.read(pos+i)) << " ";
+			
+				if (len < 3) cout << "\t";
+				cout << "\t" << ins << endl;
 				pos += len;
 			}
 

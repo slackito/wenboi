@@ -949,8 +949,29 @@ GameBoy::run_status GameBoy::run()
 	return status;
 }
 
+std::string GameBoy::get_port_name(int port) const
+{
+	std::string port_name;
 
-std::string GameBoy::status_string()
+	switch (port)
+	{
+		case 0x40: port_name = "LCDC"; break;
+		case 0x41: port_name = "STAT"; break;
+		case 0x42: port_name = "SCY "; break; 
+		case 0x43: port_name = "SCX "; break; 
+		case 0x44: port_name = "LY  "; break; 
+		case 0x45: port_name = "LYC "; break; 
+		case 0x4A: port_name = "WY  "; break; 
+		case 0x4B: port_name = "WX  "; break; 
+		case 0x47: port_name = "BGP "; break; 
+		case 0x48: port_name = "OBP0"; break; 
+		case 0x49: port_name = "OBP1"; break; 
+		case 0x46: port_name = "DMA "; break; 
+	}
+	return port_name;
+}
+
+std::string GameBoy::status_string() const
 {
 	std::string disassembled_instruction;
 	int length;
@@ -972,7 +993,7 @@ std::string GameBoy::status_string()
 }
 
 #include "disasm.h"
-void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length)
+void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length) const
 {
 	int opcode;
 	u16 PC = addr;
@@ -1027,15 +1048,19 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 
 		// LDH (n), A
 		case 0xE0: {
-			result << "LD (IO_BASE + 0x" << 
-					std::setw(2) << int(memory.read(PC++)) << "), A";
+			int port = int(memory.read(PC++));
+			
+			result << "LD (0xFF" << 
+					std::setw(2) << port << "), A" << "\t[" << get_port_name(port) << "]";
 			break;
 		}
 		// LDH A, (n)
-		case 0xF0:
-			result << "LD A, (IO_BASE + 0x" << 
-					std::setw(2) << int(memory.read(PC++)) << ")";
+		case 0xF0: {
+			int port = int(memory.read(PC++));
+			result << "LD A, (0xFF" << 
+					std::setw(2) << port << ")" << "\t[" << get_port_name(port) << "]";
 			break;
+		}
 
 		dis_reg16_inm(0x01, "LD", BC)
 		dis_reg16_inm(0x11, "LD", DE)

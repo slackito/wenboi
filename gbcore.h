@@ -80,7 +80,7 @@ class GameBoy
 
 	void set_flag  (Flag f) { regs.flags |= f; }
 	void reset_flag(Flag f) { regs.flags &= (~f); }
-	bool check_flag(Flag f) { return ((regs.flags & f) != 0); }
+	bool check_flag(Flag f) const { return ((regs.flags & f) != 0); }
 
 	enum run_status 
 	{
@@ -98,8 +98,9 @@ class GameBoy
 	run_status run();
 
 	// debug methods
-	void disassemble_opcode(u16 addr, std::string &instruction, int &length);
-	std::string status_string();
+	void disassemble_opcode(u16 addr, std::string &instruction, int &length) const;
+	std::string status_string() const;
+	std::string get_port_name(int port) const;
 
 };
 
