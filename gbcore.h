@@ -10,6 +10,7 @@ union GBRom;
 
 class GameBoy
 {
+	public:
 	enum GameBoyType { GAMEBOY, GAMEBOYCOLOR, SUPERGAMEBOY } gameboy_type;
 	enum InterruptRequest { 
 		IRQ_VBLANK   = 0x00, 
@@ -36,7 +37,7 @@ class GameBoy
 
 	// CPU Registers
 	// ENDIANNESS WARNING!
-	struct 
+	struct RegisterSet
 	{
 		union 
 		{
@@ -81,13 +82,24 @@ class GameBoy
 	void reset_flag(Flag f) { regs.flags &= (~f); }
 	bool check_flag(Flag f) { return ((regs.flags & f) != 0); }
 
-	public:
+	enum run_status 
+	{
+		NORMAL = 0,
+		BREAKPOINT = 1,
+		WATCHPOINT = 2,
+		TRACEPOINT = 3,
+	};
+
 	GameBoy(std::string rom_name, GameBoyType type=GAMEBOY);
 
 	void irq(InterruptRequest i) { memory.write(0xFFFF, memory.read(0xFFFF) | i); }
 	void reset();
-	void run_cycle();
-	void run();
+	run_status run_cycle();
+	run_status run();
+
+	// debug methods
+	void disassemble_opcode(u16 addr, std::string &instruction, int &length);
+	std::string status_string();
 
 };
 

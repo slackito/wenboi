@@ -76,7 +76,7 @@ void GameBoy::reset()
 
 #include "opcodes.h"
 
-void GameBoy::run_cycle()
+GameBoy::run_status GameBoy::run_cycle()
 {
 	// Check for interrupts before opcode fetching
 	u8 IE;
@@ -118,17 +118,9 @@ void GameBoy::run_cycle()
 		}
 	}
 
-
-
-	int prefix;
 	int opcode;
 	opcode = memory.read(regs.PC++);
-	if (opcode == 0xCB)
-	{
-		prefix=opcode;
-		opcode=memory.read(regs.PC++);
-	}
-
+	
 	switch(opcode)
 	{
 		// LD n, nn
@@ -161,7 +153,7 @@ void GameBoy::run_cycle()
 			regs.A = memory.read(regs.DE);
 			break;
 		case 0xFA: // LD A, (nn)
-			regs.A = memory.read(memory.read(regs.PC) + memory.read(regs.PC+1)<<8);
+			regs.A = memory.read(memory.read(regs.PC) + (memory.read(regs.PC+1)<<8));
 			regs.PC+=2;
 			break;
 		
@@ -173,7 +165,7 @@ void GameBoy::run_cycle()
 			memory.write(regs.DE, regs.A);
 			break;
 		case 0xEA: // LD (nn), A
-			memory.write(memory.read(regs.PC) + memory.read(regs.PC+1)<<8, regs.A);
+			memory.write(memory.read(regs.PC) + (memory.read(regs.PC+1)<<8), regs.A);
 			regs.PC+=2;
 			break;
 
@@ -259,7 +251,7 @@ void GameBoy::run_cycle()
 
 		// LD (nn), SP
 		case 0x08: {
-			int addr = memory.read(regs.PC) + memory.read(regs.PC+1) << 8;
+			int addr = memory.read(regs.PC) + (memory.read(regs.PC+1) << 8);
 			regs.PC += 2;
 			memory.write(addr, regs.SP);
 			break;
@@ -440,7 +432,7 @@ void GameBoy::run_cycle()
 		// CP n
 		for_each_register(0xBF, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, CP_reg)
 
-		case 0xBE: {//SUB (HL)
+		case 0xBE: {//CP (HL)
 			int res = regs.A - memory.read(regs.HL);
 			int half_res = (regs.A & 0x0F) - (memory.read(regs.HL) & 0x0F);
 			regs.A = static_cast<u8>(res);
@@ -452,7 +444,7 @@ void GameBoy::run_cycle()
 			break;
 			}
 		
-		case 0xFE: {//SUB #
+		case 0xFE: {//CP #
 			int inm = memory.read(regs.PC++);
 			int res = regs.A - inm;
 			int half_res = (regs.A & 0x0F) - (inm & 0x0F);
@@ -941,9 +933,33 @@ void GameBoy::run_cycle()
 
 	} // end switch
 
-	std::ostringstream tracemsg;
-	tracemsg << "t = " << std::dec << cycle_count << 
-		"\tPC = " << std::hex << std::setw(4) << std::setfill('0') << regs.PC << std::endl <<
+	++cycle_count;
+
+	return NORMAL;
+}
+
+GameBoy::run_status GameBoy::run() 
+{
+	run_status status=NORMAL;
+	while (status == NORMAL)
+	{
+		status = run_cycle();
+	}
+	
+	return status;
+}
+
+
+std::string GameBoy::status_string()
+{
+	std::string disassembled_instruction;
+	int length;
+	disassemble_opcode(regs.PC, disassembled_instruction, length);
+
+	std::ostringstream result;
+	result << "t = " << std::dec << cycle_count << 
+		"\tPC = " << std::hex << std::setw(4) << std::setfill('0') << regs.PC << 
+		"\t" << disassembled_instruction << std::endl <<
 		"A = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.A) <<
 		" B = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.B) <<
 		" C = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.C) <<
@@ -952,14 +968,295 @@ void GameBoy::run_cycle()
 		" H = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.H) <<
 		" L = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.L) <<
 		"\tflags = " << int(regs.flags) << "\tZF = " << check_flag(ZERO_FLAG);
-	logger.trace(tracemsg.str());
-	++cycle_count;
-
+	return result.str();
 }
 
-void GameBoy::run() 
+#include "disasm.h"
+void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length)
 {
+	int opcode;
+	u16 PC = addr;
+	opcode = memory.read(PC++);
+	std::ostringstream result;
+
+	result << std::hex << std::setfill('0');
+	
+	switch(opcode)
+	{
+		// LD n, nn
+		dis_for_each_register(0x3E, 0x06, 0x0E, 0x16, 0x1E, 0x26, 0x2E, "LD", dis_reg_inm)
+
+		// LD r1,r2
+		dis_for_each_register(0x7F, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, "LD", dis_A_reg)
+		dis_for_each_register(0x47, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, "LD", dis_B_reg)
+		dis_for_each_register(0x4F, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, "LD", dis_C_reg)
+		dis_for_each_register(0x57, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, "LD", dis_D_reg)
+		dis_for_each_register(0x5F, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, "LD", dis_E_reg)
+		dis_for_each_register(0x67, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, "LD", dis_H_reg)
+		dis_for_each_register(0x6F, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, "LD", dis_L_reg)
+		
+		// LD reg, (HL)
+		dis_for_each_register(0x7E, 0x46, 0x4E, 0x56, 0x5E, 0x66, 0x6E, "LD", dis_reg__HL_)
+
+		// LD (HL), reg
+		dis_for_each_register(0x77, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, "LD", dis__HL__reg)
+	
+		dis__reg16__inm(0x36, "LD", HL)
+		
+		dis_reg__reg16_(0x0A, "LD", A, BC)
+		dis_reg__reg16_(0x1A, "LD", A, DE)
+		dis_reg__inm_(0xFA, "LD", A)
+
+		dis__reg16__reg(0x02, "LD", BC, A)
+		dis__reg16__reg(0x12, "LD", DE, A)
+		dis__inm__reg(0xEA, "LD", A)
+
+		// LD A, (C)
+		dis(0xF2, "LD A, (C)")
+		// LD (C), A
+		dis(0xE2, "LD (C), A")
+
+		// LD A, (HLD); LD A, (HL-); LDD A,(HL);
+		dis(0x3A, "LD A, (HL-)")
+		// LD (HLD), A; LD (HL-), A; LDD (HL), A;
+		dis(0x32, "LD (HL-), A")
+		// LD A, (HLI); LD A, (HL+); LDI A, (HL);
+		dis(0x2A, "LD A, (HL+)")
+		// LD (HLI), A; LD (HL+), A; LDI (HL), A;
+		dis(0x22, "LD (HL+), A")
+
+		// LDH (n), A
+		case 0xE0: {
+			result << "LD (IO_BASE + 0x" << 
+					std::setw(2) << int(memory.read(PC++)) << "), A";
+			break;
+		}
+		// LDH A, (n)
+		case 0xF0:
+			result << "LD A, (IO_BASE + 0x" << 
+					std::setw(2) << int(memory.read(PC++)) << ")";
+			break;
+
+		dis_reg16_inm(0x01, "LD", BC)
+		dis_reg16_inm(0x11, "LD", DE)
+		dis_reg16_inm(0x21, "LD", HL)
+		dis_reg16_inm(0x31, "LD", SP)
+		
+		// LD SP, HL
+		dis(0xF9, "LD SP, HL")
+
+		// LD HL, SP+n
+		// LDHL SP, n
+		case 0xF8: 
+			result << "LD HL, SP + 0x"<< std::setw(2) << int(memory.read(PC++));
+			break; 
+
+		// LD (nn), SP
+		dis__inm__reg16(0x08, "LD", SP)
+
+		// PUSH nn
+		dis_reg16(0xF5, "PUSH", AF)
+		dis_reg16(0xC5, "PUSH", BC)
+		dis_reg16(0xD5, "PUSH", DE)
+		dis_reg16(0xE5, "PUSH", HL)
+
+		// POP nn
+		dis_reg16(0xF1, "POP", AF)
+		dis_reg16(0xC1, "POP", BC)
+		dis_reg16(0xD1, "POP", DE)
+		dis_reg16(0xE1, "POP", HL)
+
+		// 8-bit ALU
+		// ADD A,reg
+		dis_for_each_register(0x87, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, "ADD", dis_A_reg)
+
+		dis_reg__reg16_(0x86, "ADD", A, HL)
+		dis_reg_inm(0xC6, "ADD", A)
+		
+		// ADC A, n
+		dis_for_each_register(0x8F, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, "ADC", dis_A_reg)
+		
+		dis_reg__reg16_(0x8E, "ADC", A, HL)
+		dis_reg_inm(0xCE, "ADC", A)
+
+		// SUB n
+		dis_for_each_register(0x97, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, "SUB", dis_reg)
+		
+		dis__reg16_(0x96, "SUB", HL)
+		dis_inm8(0xD6, "SUB")	
+		
+		// SBC n
+		dis_for_each_register(0x9F, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, "SBC", dis_reg)
+
+		dis__reg16_(0x9E, "SBC", HL)
+
+		// AND n
+		dis_for_each_register(0xA7, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, "AND", dis_reg)
+
+		dis__reg16_(0xA6, "AND", HL)
+		dis_inm8(0xE6, "AND")
+		
+		// OR n
+		dis_for_each_register(0xB7, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, "OR", dis_reg)
+		
+		dis__reg16_(0xB6, "OR", HL)
+		dis_inm8(0xF6, "OR")
+
+		// XOR n
+		dis_for_each_register(0xAF, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, "XOR", dis_reg)
+
+		dis__reg16_(0xAE, "XOR", HL)
+		dis_inm8(0xEE, "XOR")
+		
+		// CP n
+		dis_for_each_register(0xBF, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, "CP", dis_reg)
+		
+		dis__reg16_(0xBE, "CP", HL)
+		dis_inm8(0xFE, "CP")
+
+		// INC n
+		dis_for_each_register(0x3C, 0x04, 0x0C, 0x14, 0x1C, 0x24, 0x2C, "INC", dis_reg)
+
+		dis__reg16_(0x34, "INC", HL)
+		
+		// DEC n
+		dis_for_each_register(0x3D, 0x05, 0x0D, 0x15, 0x1D, 0x25, 0x2D, "DEC", dis_reg)
+
+		dis__reg16_(0x35, "DEC", HL)
+		
+		// 16-bit ALU
+		// ADD HL, n
+		dis_for_each_register16(0x09, 0x19, 0x29, 0x39, "ADD", dis_HL_reg16)
+
+		// ADD SP, #
+		dis_reg16_inm8(0xE8, "ADD", SP)
+		
+		// INC nn
+		dis_for_each_register16(0x03, 0x13, 0x23, 0x33, "INC", dis_reg16)
+
+		// DEC nn
+		dis_for_each_register16(0x0B, 0x1B, 0x2B, 0x3B, "DEC", dis_reg16)
+
+		// Miscellaneous instructions
+		case 0xCB: {
+			int sub_opcode = memory.read(PC++);
+			switch(sub_opcode)
+			{
+				// SWAP n
+				dis_for_each_register(0x37, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, "SWAP", dis_reg)
+
+				// SWAP (HL)
+				dis__reg16_(0x36, "SWAP", HL)
+
+				// RLC n
+				dis_for_each_register(0x07, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, "RLC", dis_reg)
+
+				// RLC (HL)
+				dis__reg16_(0x06, "RLC", HL)
+
+				// RL n (through carry)
+				dis_for_each_register(0x17, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, "RL", dis_reg)
+
+				// RL (HL) (through carry)
+				dis__reg16_(0x16, "RL", HL)
+
+				// RRC n
+				dis_for_each_register(0x0F, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, "RRC", dis_reg)
+
+				// RRC (HL)
+				dis__reg16_(0x0E, "RRC", HL)
+
+				// RR n (through carry)
+				dis_for_each_register(0x1F, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, "RR", dis_reg)
+
+				// RR (HL) (through carry)
+				dis__reg16_(0x1E, "RR", HL)
+			}
+			break;
+		}
+
+		dis(0x27, "DAA")
+
+		dis(0x2F, "CPL")
+
+		dis(0x3F, "CCF")
+
+		dis(0x37, "SCF")
+		dis(0x00, "NOP")
+		dis(0x76, "HALT")
+
+		dis(0x10, "STOP")
+		
+		dis(0xF3, "DI")
+
+		dis(0xFB, "EI")
+			   
+		// Rotates and shifts
+		dis(0x07, "RLCA")
+
+		dis(0x17, "RLA")
+		
+		dis(0x0F, "RRCA")
+
+		dis(0x1F, "RRA")
+		
+		// TODO: Bit instructions
+		
+		// Jumps
+		dis_inm16(0xC3, "JP")
+		// JP cc, nn
+		dis_inm16(0xC2, "JP NZ")
+		dis_inm16(0xCA, "JP Z")
+		dis_inm16(0xD2, "JP NC")
+		dis_inm16(0xDA, "JP C")
+		dis(0xE9, "JP (HL)")
+		
+		dis_inm8(0x18, "JR")
+		dis_inm8(0x20, "JR NZ")
+		dis_inm8(0x28, "JR Z")
+		dis_inm8(0x30, "JR NC")
+		dis_inm8(0x38, "JR C")
+
+		// Calls
+		dis_inm16(0xCD, "CALL")
+		// CALL cc, nn
+		dis_inm16(0xC4, "CALL NZ")
+		dis_inm16(0xCC, "CALL Z")
+		dis_inm16(0xD4, "CALL NC")
+		dis_inm16(0xDC, "CALL C")
+
+		// Restarts
+		dis(0xC7, "RST 0x00")
+		dis(0xCF, "RST 0x08")
+		dis(0xD7, "RST 0x10")
+		dis(0xDF, "RST 0x18")
+		dis(0xE7, "RST 0x20")
+		dis(0xEF, "RST 0x28")
+		dis(0xF7, "RST 0x30")
+		dis(0xFF, "RST 0x38")
+
+		// Returns
+		dis(0xC9, "RET")
+		// RET cc
+		dis(0xC0, "RET NZ")
+		dis(0xC8, "RET Z")
+		dis(0xD0, "RET NC")
+		dis(0xD8, "RET C")
+
+		dis(0xD9, "RETI")
+
+		default:
+			std::ostringstream errmsg;
+			errmsg << "Unknown opcode 0x";
+			errmsg << std::hex << std::setw(2) << std::setfill('0') << opcode;
+			errmsg << " at 0x" << std::hex << std::setw(4) << PC-1;
+			errmsg << " (cycle count = " << std::dec << cycle_count << ")";
+			logger.trace(errmsg.str());
+			break;
+
+	} // end switch
+	
+	instruction = result.str();
+	length = PC - addr;
 }
-
-
 
