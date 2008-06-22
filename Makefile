@@ -15,7 +15,8 @@ GBMemory.o: GBMemory.cc GBMemory.h Logger.h
 MBC.o: MBC.cc MBC.h Logger.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 
-gbcore.o: gbcore.cc gbcore.h GBRom.h Logger.h MBC.h GBMemory.h
+gbcore.o: gbcore.cc gbcore.h opcodes.h disasm.h \
+	GBRom.h Logger.h MBC.h GBMemory.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 		
 tests/test_gbrom: GBRom.cc GBRom.h 

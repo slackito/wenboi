@@ -9,8 +9,8 @@
 #define for_each_register(opA, opB, opC, opD, opE, opH, opL, macro) \
 	macro(opA, A) \
 	macro(opB, B) \
-        macro(opC, C) \
-        macro(opD, D) \
+    macro(opC, C) \
+    macro(opD, D) \
 	macro(opE, E) \
 	macro(opH, H) \
 	macro(opL, L)
