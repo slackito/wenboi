@@ -966,7 +966,12 @@ std::string GameBoy::get_port_name(int port) const
 		case 0x47: port_name = "BGP "; break; 
 		case 0x48: port_name = "OBP0"; break; 
 		case 0x49: port_name = "OBP1"; break; 
-		case 0x46: port_name = "DMA "; break; 
+		case 0x46: port_name = "DMA "; break;
+		case 0xFF: port_name = "IE  "; break;
+		default:
+				   if (port >= 0x80 && port <= 0xFE) {
+					   port_name = "HRAM";
+				   }
 	}
 	return port_name;
 }
