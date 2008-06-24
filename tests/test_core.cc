@@ -23,14 +23,14 @@ int main(int argc, char **argv)
 			
 	cout << gb.status_string() << endl;
 
-	bool exit_program=false;
 	string line, command, last_command;
 	vector<string> arguments;
 	
-	while(!exit_program)
+	while(true)
 	{
 		cout << "(wenboi) ";
 		std::getline(cin, line, '\n');
+		if (!cin.good()) break; // if stdin is closed, exit main loop
 		if (line == "") command = last_command;
 		else
 		{
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 		}
 		else if (command == "quit")
 		{
-			exit_program = true;
+			break;
 		}
 		else if (command == "disasm")
 		{
