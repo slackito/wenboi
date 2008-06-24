@@ -90,7 +90,9 @@ class GameBoy
 		TRACEPOINT = 3,
 	};
 
+	// Constructors
 	GameBoy(std::string rom_name, GameBoyType type=GAMEBOY);
+
 
 	void irq(InterruptRequest i) { memory.write(0xFFFF, memory.read(0xFFFF) | i); }
 	void reset();
@@ -102,6 +104,10 @@ class GameBoy
 	std::string status_string() const;
 	std::string get_port_name(int port) const;
 
+	// prevent object copying
+	private:
+	GameBoy(const GameBoy&);
+	GameBoy operator=(const GameBoy&);
 };
 
 #endif

@@ -86,5 +86,6 @@ int main(int argc, char *argv[])
 		std::exit(EXIT_FAILURE);
 	}
 	GBRom *rom=read_gbrom(argv[1]);
+	printf("rom=%p\n", rom);
 }
 #endif

@@ -78,6 +78,8 @@ void GameBoy::reset()
 
 GameBoy::run_status GameBoy::run_cycle()
 {
+	video.update();
+
 	// Check for interrupts before opcode fetching
 	u8 IE;
 	if (IME && (IE=memory.read(0xFFFF)))
@@ -1280,7 +1282,6 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 			errmsg << "Unknown opcode 0x";
 			errmsg << std::hex << std::setw(2) << std::setfill('0') << opcode;
 			errmsg << " at 0x" << std::hex << std::setw(4) << PC-1;
-			errmsg << " (cycle count = " << std::dec << cycle_count << ")";
 			logger.trace(errmsg.str());
 			break;
 

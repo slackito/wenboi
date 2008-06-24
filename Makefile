@@ -1,6 +1,6 @@
 CXXFLAGS=-g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast \
-	 -Woverloaded-virtual 
-LDFLAGS=-g
+	 -Woverloaded-virtual $(shell sdl-config --cflags)
+LDFLAGS=-g $(shell sdl-config --libs)
 
 all: tests
 
@@ -20,10 +20,10 @@ gbcore.o: gbcore.cc gbcore.h opcodes.h disasm.h \
 	g++ $(CXXFLAGS) -c -o $@ $<
 		
 tests/test_gbrom: GBRom.cc GBRom.h 
-	g++ -DTEST_GBROM -o $@ GBRom.cc 
+	g++ $(CXXFLAGS) $(LDFLAGS) -DTEST_GBROM -o $@ GBRom.cc 
 
 tests/test_core: tests/test_core.cc gbcore.o MBC.o GBMemory.o GBRom.o GBVideo.o
-	g++ -o $@ $^
+	g++ $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 clean:
 	rm -f *.o tests/test_gbrom
