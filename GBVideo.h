@@ -1,5 +1,10 @@
+#ifndef GBVIDEO_H
+#define GBVIDEO_H
+
 #include "GBMemory.h"
 #include "SDL.h"
+
+class GameBoy;
 
 class GBVideo
 {
@@ -35,4 +40,5 @@ class GBVideo
 
 };
 
+#endif
 

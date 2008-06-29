@@ -6,7 +6,7 @@ all: tests
 
 tests: tests/test_gbrom tests/test_core
 
-GBVideo.o: GBVideo.cc GBVideo.h Logger.h
+GBVideo.o: GBVideo.cc GBVideo.h Logger.h util.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 
 GBMemory.o: GBMemory.cc GBMemory.h Logger.h

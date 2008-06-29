@@ -24,6 +24,7 @@ class GBIO
 	static const u16 OBP0 = 0xFF48; // Object Pallete 0 data(R/W)
 	static const u16 OBP1 = 0xFF49; // Object Pallete 1 data(R/W)
 	static const u16 DMA  = 0xFF46; // DMA Transfer & Start addr (W)
+	static const u16 IF   = 0xFF0F; // Interrupt flag       (R/W)
 
 	u8   read(int addr) const;
 	void write(int addr, u8 value);
