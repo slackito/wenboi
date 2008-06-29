@@ -14,10 +14,10 @@ class GameBoy
 	enum GameBoyType { GAMEBOY, GAMEBOYCOLOR, SUPERGAMEBOY } gameboy_type;
 	enum InterruptRequest { 
 		IRQ_VBLANK   = 0x00, 
-		IRQ_LCD_STAT = 0x10,
-		IRQ_TIMER    = 0x20, 
-		IRQ_SERIAL   = 0x40,
-		IRQ_JOYPAD   = 0x80
+		IRQ_LCD_STAT = 0x01,
+		IRQ_TIMER    = 0x02, 
+		IRQ_SERIAL   = 0x04,
+		IRQ_JOYPAD   = 0x08
 	};
 	
 	enum Flag
@@ -94,7 +94,7 @@ class GameBoy
 	GameBoy(std::string rom_name, GameBoyType type=GAMEBOY);
 
 
-	void irq(InterruptRequest i) { memory.write(0xFFFF, memory.read(0xFFFF) | i); }
+	void irq(InterruptRequest i) { memory.write(0xFF0F, memory.read(0xFF0F) | i); }
 	void reset();
 	run_status run_cycle();
 	run_status run();

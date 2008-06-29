@@ -832,6 +832,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}
+			break;
 		}
 
 		case 0xCC: { // CALL Z, nn
@@ -842,6 +843,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}
+			break;
 		}
 
 		case 0xD4: { // CALL NC, nn
@@ -852,6 +854,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}
+			break;
 		}
 
 		case 0xDC: { // CALL C, nn
@@ -862,6 +865,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			} else {
 				regs.PC += 2; // if !cc, skip 2 (nn) bytes
 			}
+			break;
 		}
 
 		// Restarts
@@ -880,6 +884,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
 			regs.SP += 2;
 			regs.PC = retaddr;
+			break;
 		}
 
 		// RET cc
@@ -922,6 +927,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			regs.SP += 2;
 			regs.PC = retaddr;
 			IME=1;
+			break;
 		}
 	
 		default:
@@ -969,6 +975,7 @@ std::string GameBoy::get_port_name(int port) const
 		case 0x48: port_name = "OBP0"; break; 
 		case 0x49: port_name = "OBP1"; break; 
 		case 0x46: port_name = "DMA "; break;
+		case 0x0F: port_name = "IF  "; break;
 		case 0xFF: port_name = "IE  "; break;
 		default:
 				   if (port >= 0x80 && port <= 0xFE) {
@@ -1007,7 +1014,7 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 	opcode = memory.read(PC++);
 	std::ostringstream result;
 
-	result << std::hex << std::setfill('0');
+	result << std::hex << std::uppercase << std::setfill('0');
 	
 	switch(opcode)
 	{
