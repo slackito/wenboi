@@ -41,7 +41,7 @@ namespace cartridge_types {
 
 struct GBRomHeader {
 	u8  dummy[256];            // ROM beginning, before header
-	u32 entry_point;           // 0100-0103
+	u8  entry_point[4];        // 0100-0103
 	u8  nintendo_logo[48];     // 0104-0133
 	union {
 		struct {
