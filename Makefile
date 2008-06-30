@@ -26,6 +26,6 @@ tests/test_core: tests/test_core.cc gbcore.o MBC.o GBMemory.o GBRom.o GBVideo.o
 	g++ $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 clean:
-	rm -f *.o tests/test_gbrom
+	rm -f *.o tests/test_gbrom tests/test_core
 
 .PHONY: clean tests all
