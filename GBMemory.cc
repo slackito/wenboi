@@ -34,8 +34,8 @@ void GBMemory::write(int addr, u8 value)
 		std::ostringstream errmsg;
 		errmsg << "Invalid write address 0x" << 
 			std::hex << std::setw(4) << std::setfill('0') << addr;
-		logger.error(errmsg.str());
-		std::cout << *(static_cast<u8*>(0));
+		logger.debug(errmsg.str());
+		//std::cout << *(static_cast<u8*>(0));
 	}
 }
 

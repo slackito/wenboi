@@ -942,15 +942,28 @@ GameBoy::run_status GameBoy::run_cycle()
 	} // end switch
 
 	++cycle_count;
+	//std::cout << "cycle_count " << cycle_count << std::endl;
 
 	return NORMAL;
 }
 
 GameBoy::run_status GameBoy::run() 
 {
+	SDL_Event ev;
+
 	run_status status=NORMAL;
 	while (status == NORMAL)
 	{
+		while (video.poll_event(&ev))
+		{
+			if (ev.type == SDL_KEYDOWN)
+			{
+				if (ev.key.keysym.sym == SDLK_ESCAPE)
+				{
+					return PAUSED;
+				}
+			}
+		}
 		status = run_cycle();
 	}
 	

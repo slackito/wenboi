@@ -1,10 +1,13 @@
 #include "GBVideo.h"
 #include "gbcore.h"
 #include "util.h"
+#include <iostream>
+
 
 GBVideo::GBVideo(GameBoy *core):
 	display(0),
-	core(core)
+	core(core),
+	frames_rendered(0)
 {
 	SDL_Init(SDL_INIT_VIDEO);
 	display=SDL_SetVideoMode(160,144,32,SDL_SWSURFACE);
@@ -22,7 +25,7 @@ GBVideo::~GBVideo()
 
 u8   GBVideo::read_VRAM (int addr) const
 {
-	int STAT = memory.read(GBIO::STAT);
+	int STAT = core->memory.read(GBIO::STAT);
 	if ((STAT & 3) == 3)
 		return 0xFF; // VRAM access disabled
 	else
@@ -31,7 +34,7 @@ u8   GBVideo::read_VRAM (int addr) const
 
 u8   GBVideo::read_OAM  (int addr) const
 {
-	int STAT = memory.read(GBIO::STAT);
+	int STAT = core->memory.read(GBIO::STAT);
 	if ((STAT & 3) >= 2)
 		return 0xFF; // OAM access disabled
 	else
@@ -40,7 +43,7 @@ u8   GBVideo::read_OAM  (int addr) const
 
 void GBVideo::write_VRAM(int addr, u8 value)
 {
-	int STAT = memory.read(GBIO::STAT);
+	int STAT = core->memory.read(GBIO::STAT);
 	if ((STAT & 3) == 3)
 		return; // VRAM access disabled
 	else
@@ -49,7 +52,7 @@ void GBVideo::write_VRAM(int addr, u8 value)
 
 void GBVideo::write_OAM (int addr, u8 value)
 {
-	int STAT = memory.read(GBIO::STAT);
+	int STAT = core->memory.read(GBIO::STAT);
 	if ((STAT & 3) >= 2)
 		return; // OAM access disabled
 	else
@@ -74,24 +77,36 @@ void GBVideo::update()
 	// mode 0 starts at 252, 708, 1164...
 	// vblank starts at 65664
 
+	u32 *pixels = static_cast<u32*>(display->pixels);
+	u32 pixels_per_line = display->pitch/display->format->BytesPerPixel;
+
 	int STAT = core->memory.read(GBIO::STAT);
 	int LYC  = core->memory.read(GBIO::LYC);
-	int LY   = core->memory.read(GBIO::LY);
 
 	int t = core->cycle_count % 70224;
-	
-	if (t >= 65665)
+	int hline_t=-1;
+	int	LY = t/456;
+	//std::cout << t << std::endl;
+
+	if (t >= 65664)
 	{
-		if (t == 65665 && check_bit(STAT,4))
-			core->irq(GameBoy::IRQ_VBLANK);
+		if (t == 65664)
+		{
+			if (check_bit(STAT,4))
+				core->irq(GameBoy::IRQ_VBLANK);
+			SDL_UpdateRect(display, 0, 0, 0, 0);
+			frames_rendered++;
+			char buf[50];
+			sprintf(buf, "%d", frames_rendered);
+			SDL_WM_SetCaption(buf, 0);
+		}
 
 		// preserve bits 3-6, set mode to 1 (VBlank) and coincidence to 0
 		STAT = (STAT&0xF8) | 1;
 	}
 	else
 	{
-		LY = t/456;
-		int hline_t = t%456;
+		hline_t = t%456;
 		if (LY == LYC)
 		{
 			STAT = set_bit(STAT, 2); // set coincidence flag
@@ -126,6 +141,58 @@ void GBVideo::update()
 	core->memory.write(GBIO::STAT, STAT);
 
 	// Draw the background
-	
+	// Draw at hline_t == 80, when the app cannot write to neither VRAM nor OAM
+	if (hline_t == 80)
+	{
+		int LCDC = core->memory.read(GBIO::LCDC);
+		int BGP  = core->memory.read(GBIO::BGP);
+		int pallette[4];
+		pallette[0] = BGP & 3;
+		pallette[1] = (BGP>>2) & 3;
+		pallette[2] = (BGP>>4) & 3;
+		pallette[3] = (BGP>>6) & 3;
+		
+		if (check_bit(LCDC, 0))  // is BG display active?
+		{
+			u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
+			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0800 : 0x0000;
+			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 127;
 
+			// (vx    , vy    ) -> position of the pixel in the 256x256 bg
+			// (map_x , map_y ) -> map coordinates of the current tile
+			// (tile_x, tile_y) -> position of the pixel in the tile
+			int SCX = core->memory.read(GBIO::SCX);
+			int SCY = core->memory.read(GBIO::SCY);
+			int vy = (LY + SCY) % 256;
+			int map_y = vy / 8;
+			int tile_y = vy % 8;
+			for (int x=0; x<160; x++)
+			{
+				int vx = (x+SCX) % 256;
+				int map_x = vx/8;
+				int tile_x = 7-(vx%8);
+				u8 current_tile_index = VRAM[tile_map_addr+ 32*map_y + map_x] + tile_data_base;
+				u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+				u8 current_row_low = VRAM[current_tile_addr+2*tile_y];
+				u8 current_row_high = VRAM[current_tile_addr+2*tile_y+1];
+				u8 color = ((current_row_high >> tile_x)&1) << 1 | 
+							((current_row_low >> tile_x)&1);
+
+				pixels[LY*pixels_per_line+x] = colors[pallette[color]];
+			}
+		}
+		else
+		{
+			for (int x=0; x<160; x++)
+				pixels[LY*pixels_per_line+x] = colors[0];
+		}
+
+	}
 }
+
+
+int GBVideo::poll_event(SDL_Event *ev)
+{
+	return SDL_PollEvent(ev);
+}
+

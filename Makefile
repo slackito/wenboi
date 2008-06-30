@@ -1,4 +1,4 @@
-CXXFLAGS=-g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast \
+CXXFLAGS=-O2 -g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast \
 	 -Woverloaded-virtual $(shell sdl-config --cflags)
 LDFLAGS=-g $(shell sdl-config --libs)
 

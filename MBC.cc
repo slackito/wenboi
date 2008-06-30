@@ -41,8 +41,7 @@ void NoMBC::write(int addr, u8 value)
 	{
 		std::ostringstream errmsg;
 		errmsg <<"NoMBC: trying to write in ROM, addr=0x"<<std::hex<<addr;
-		logger.error(errmsg.str());
-		std::cout << *(static_cast<u8*>(0)); // Shouldn't happen
+		logger.debug(errmsg.str());
 	}
 }
 

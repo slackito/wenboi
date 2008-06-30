@@ -88,6 +88,7 @@ class GameBoy
 		BREAKPOINT = 1,
 		WATCHPOINT = 2,
 		TRACEPOINT = 3,
+		PAUSED = 4,
 	};
 
 	// Constructors

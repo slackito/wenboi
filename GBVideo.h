@@ -15,11 +15,12 @@ class GBVideo
 	u8 OAM[160];
 
 	u32 colors[4];
+	u32 frames_rendered;
 
+	
 	public:
-	static const u16 VRAM_BASE = 0x8000;
-	static const u16 OAM_BASE  = 0xFE00;
-
+	static const u16 VRAM_BASE  = 0x8000;
+	static const u16 OAM_BASE   = 0xFE00;
 
 	GBVideo(GameBoy *core);
 	~GBVideo();
@@ -31,7 +32,13 @@ class GBVideo
 	void write_OAM (int addr, u8 value);
 
 	// drawing control
-	void update();	
+	void update();
+
+	// event processing
+	int poll_event(SDL_Event *ev);
+	
+	// status queries
+	u32 get_frames_rendered() { return frames_rendered; }
 	
 	// prevent object copying
 	private:

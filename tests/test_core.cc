@@ -49,11 +49,12 @@ int main(int argc, char **argv)
 			gb.run_cycle();
 			cout << gb.status_string() << endl;
 		}
-		else if (command == "run") 
+		else if (command == "run" || command == "r") 
 		{
-			gb.run();
+			int status = gb.run();
+			cout << "run returned with status " << status << endl;
 		}
-		else if (command == "quit")
+		else if (command == "quit" || command == "q")
 		{
 			break;
 		}
