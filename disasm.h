@@ -150,6 +150,15 @@
 		break;
 
 
+// Special routine for JR
+#define dis_JR(opcode, name) \
+	case opcode: { \
+		s8 offset = memory.read(PC++); \
+		result << name << " " << std::dec << int(offset) << "\t[0x" \
+				 << std::hex << std::setw(2) << int(PC+offset) << "]"; \
+		break; \
+	}
+
 
 ////////////////////////////////////////////////////////////
 

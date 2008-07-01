@@ -16,7 +16,9 @@ GameBoy::GameBoy(std::string rom_name, GameBoyType type):
 	regs(),
 	IME(1),
 	HALT(0),
-	cycle_count(0)
+	cycle_count(0),
+	breakpoints(),
+	last_breakpoint_id(0)
 {
 	logger.info("GameBoy init");
 	rom = read_gbrom(rom_name);
@@ -74,52 +76,31 @@ void GameBoy::reset()
 	memory.write(0xFFFF, 0x00);   // IE
 }
 
+int GameBoy::set_breakpoint(u16 addr)
+{
+	breakpoints[++last_breakpoint_id] = Breakpoint(addr, true);
+	return last_breakpoint_id;
+}
+
+void GameBoy::delete_breakpoint(int id)
+{
+	breakpoints.erase(id);
+}
+
+void GameBoy::enable_breakpoint(int id)
+{
+	breakpoints[id].enabled = true;
+}
+
+void GameBoy::disable_breakpoint(int id)
+{
+	breakpoints[id].enabled = false;
+}
+
 #include "opcodes.h"
 
 GameBoy::run_status GameBoy::run_cycle()
 {
-	video.update();
-
-	// Check for interrupts before opcode fetching
-	u8 IE;
-	if (IME && (IE=memory.read(0xFFFF)))
-	{
-		u8 IF = memory.read(0xFF0F);
-		if (IF)
-		{
-			if ((IF & IRQ_VBLANK) && (IE & IRQ_VBLANK)) 
-			{
-				IME = 0;
-				IF &= (~IRQ_VBLANK);
-				do_call(0x40);
-			}
-			else if ((IF & IRQ_LCD_STAT) && (IE & IRQ_LCD_STAT))
-			{
-				IME = 0;
-				IF &= (~IRQ_LCD_STAT);
-				do_call(0x48);
-			} 
-			else if ((IF & IRQ_TIMER) && (IE & IRQ_TIMER))
-			{
-				IME = 0;
-				IF &= (~IRQ_TIMER);
-				do_call(0x50);
-			}
-			else if ((IF & IRQ_SERIAL) && (IE & IRQ_SERIAL))   
-			{
-				IME = 0;
-				IF &= (~IRQ_SERIAL);
-				do_call(0x58);
-			}
-			else if ((IF & IRQ_JOYPAD) && (IE & IRQ_JOYPAD))     
-			{
-				IME = 0;
-				IF &= (~IRQ_JOYPAD);
-				do_call(0x60);
-			}
-		}
-	}
-
 	int opcode;
 	opcode = memory.read(regs.PC++);
 	
@@ -942,8 +923,66 @@ GameBoy::run_status GameBoy::run_cycle()
 	} // end switch
 
 	++cycle_count;
-	//std::cout << "cycle_count " << cycle_count << std::endl;
+	
+	video.update();
 
+	// Check for interrupts before opcode fetching
+	u8 IE=memory.read(0xFFFF);
+	logger.trace("IME=", int(IME), " IE=", int(IE));
+	if (IME && IE)
+	{
+		u8 IF = memory.read(0xFF0F);
+		logger.trace("Dispatching interrupts: IE=", int(IE), " IF=", int(IF));
+		if (IF)
+		{
+			if ((IF & IRQ_VBLANK) && (IE & IRQ_VBLANK)) 
+			{
+				IME = 0;
+				IF &= (~IRQ_VBLANK);
+				do_call(0x40);
+				logger.trace("VBLANK IRQ");
+			}
+			else if ((IF & IRQ_LCD_STAT) && (IE & IRQ_LCD_STAT))
+			{
+				IME = 0;
+				IF &= (~IRQ_LCD_STAT);
+				do_call(0x48);
+				logger.trace("LCD STAT IRQ");
+			} 
+			else if ((IF & IRQ_TIMER) && (IE & IRQ_TIMER))
+			{
+				IME = 0;
+				IF &= (~IRQ_TIMER);
+				do_call(0x50);
+				logger.trace("TIMER IRQ");
+			}
+			else if ((IF & IRQ_SERIAL) && (IE & IRQ_SERIAL))   
+			{
+				IME = 0;
+				IF &= (~IRQ_SERIAL);
+				do_call(0x58);
+				logger.trace("SERIAL IRQ");
+			}
+			else if ((IF & IRQ_JOYPAD) && (IE & IRQ_JOYPAD))     
+			{
+				IME = 0;
+				IF &= (~IRQ_JOYPAD);
+				do_call(0x60);
+				logger.trace("JOYPAD IRQ");
+			}
+		}
+		memory.write(0xFF0F, IF);
+	}
+
+	
+	for(BreakpointMap::iterator i=breakpoints.begin();
+			i != breakpoints.end();
+			i++)
+	{
+		if (i->second.addr == regs.PC && i->second.enabled)
+			return BREAKPOINT;
+	}
+	
 	return NORMAL;
 }
 
@@ -956,12 +995,21 @@ GameBoy::run_status GameBoy::run()
 	{
 		while (video.poll_event(&ev))
 		{
-			if (ev.type == SDL_KEYDOWN)
+			switch(ev.type)
 			{
-				if (ev.key.keysym.sym == SDLK_ESCAPE)
-				{
-					return PAUSED;
-				}
+				case SDL_KEYDOWN:
+					switch(ev.key.keysym.sym)
+					{
+						case SDLK_ESCAPE:
+							return PAUSED;
+						case SDLK_q:
+							return QUIT;
+						default:
+							break;
+					}
+					break;
+				case SDL_QUIT:
+					return QUIT;
 			}
 		}
 		status = run_cycle();
@@ -1263,11 +1311,11 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 		dis_inm16(0xDA, "JP C")
 		dis(0xE9, "JP (HL)")
 		
-		dis_inm8(0x18, "JR")
-		dis_inm8(0x20, "JR NZ")
-		dis_inm8(0x28, "JR Z")
-		dis_inm8(0x30, "JR NC")
-		dis_inm8(0x38, "JR C")
+		dis_JR(0x18, "JR")
+		dis_JR(0x20, "JR NZ")
+		dis_JR(0x28, "JR Z")
+		dis_JR(0x30, "JR NC")
+		dis_JR(0x38, "JR C")
 
 		// Calls
 		dis_inm16(0xCD, "CALL")

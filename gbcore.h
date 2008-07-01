@@ -5,6 +5,7 @@
 #include "GBMemory.h"
 #include "GBVideo.h"
 #include <string>
+#include <map>
 
 union GBRom;
 
@@ -13,11 +14,11 @@ class GameBoy
 	public:
 	enum GameBoyType { GAMEBOY, GAMEBOYCOLOR, SUPERGAMEBOY } gameboy_type;
 	enum InterruptRequest { 
-		IRQ_VBLANK   = 0x00, 
-		IRQ_LCD_STAT = 0x01,
-		IRQ_TIMER    = 0x02, 
-		IRQ_SERIAL   = 0x04,
-		IRQ_JOYPAD   = 0x08
+		IRQ_VBLANK   = 0x01, 
+		IRQ_LCD_STAT = 0x02,
+		IRQ_TIMER    = 0x04, 
+		IRQ_SERIAL   = 0x08,
+		IRQ_JOYPAD   = 0x10,
 	};
 	
 	enum Flag
@@ -85,10 +86,11 @@ class GameBoy
 	enum run_status 
 	{
 		NORMAL = 0,
-		BREAKPOINT = 1,
-		WATCHPOINT = 2,
-		TRACEPOINT = 3,
-		PAUSED = 4,
+		BREAKPOINT,
+		WATCHPOINT,
+		TRACEPOINT,
+		PAUSED,
+		QUIT,
 	};
 
 	// Constructors
@@ -102,6 +104,12 @@ class GameBoy
 
 	// debug methods
 	void disassemble_opcode(u16 addr, std::string &instruction, int &length) const;
+	
+	int  set_breakpoint    (u16 addr);
+	void delete_breakpoint (int id);
+	void enable_breakpoint (int id);
+	void disable_breakpoint(int id);
+
 	std::string status_string() const;
 	std::string get_port_name(int port) const;
 
@@ -109,6 +117,21 @@ class GameBoy
 	private:
 	GameBoy(const GameBoy&);
 	GameBoy operator=(const GameBoy&);
+	
+	// debug things
+	struct Breakpoint {
+		int addr;
+		bool enabled;
+
+		Breakpoint(int a, bool e): addr(a), enabled(e) {}
+		Breakpoint(): addr(-1), enabled(false) {}
+	};
+
+	typedef std::map<int, Breakpoint> BreakpointMap;
+	
+	BreakpointMap breakpoints;
+	int last_breakpoint_id;
+
 };
 
 #endif

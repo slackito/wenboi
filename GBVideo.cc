@@ -1,5 +1,6 @@
 #include "GBVideo.h"
 #include "gbcore.h"
+#include "Logger.h"
 #include "util.h"
 #include <iostream>
 
@@ -10,7 +11,7 @@ GBVideo::GBVideo(GameBoy *core):
 	frames_rendered(0)
 {
 	SDL_Init(SDL_INIT_VIDEO);
-	display=SDL_SetVideoMode(160,144,32,SDL_SWSURFACE);
+	display=SDL_SetVideoMode(320,288,32,SDL_HWSURFACE | SDL_DOUBLEBUF);
 
 	colors[0] = SDL_MapRGB(display->format, 0xFF, 0xFF, 0xFF);
 	colors[1] = SDL_MapRGB(display->format, 0xAA, 0xAA, 0xAA);
@@ -80,21 +81,29 @@ void GBVideo::update()
 	u32 *pixels = static_cast<u32*>(display->pixels);
 	u32 pixels_per_line = display->pitch/display->format->BytesPerPixel;
 
+	int LCDC = core->memory.read(GBIO::LCDC);
 	int STAT = core->memory.read(GBIO::STAT);
 	int LYC  = core->memory.read(GBIO::LYC);
 
 	int t = core->cycle_count % 70224;
 	int hline_t=-1;
 	int	LY = t/456;
-	//std::cout << t << std::endl;
+
+	logger.trace("EI=", int(core->memory.read(0xFFFF)), " LY=", LY, " LYC=", LYC);
 
 	if (t >= 65664)
 	{
 		if (t == 65664)
 		{
+			logger.trace("Requesting IRQ_VBLANK");
+			core->irq(GameBoy::IRQ_VBLANK);
+			//STAT = set_bit(STAT,4);
+
 			if (check_bit(STAT,4))
-				core->irq(GameBoy::IRQ_VBLANK);
-			SDL_UpdateRect(display, 0, 0, 0, 0);
+			{
+				core->irq(GameBoy::IRQ_LCD_STAT);
+			}
+			SDL_Flip(display);
 			frames_rendered++;
 			char buf[50];
 			sprintf(buf, "%d", frames_rendered);
@@ -107,11 +116,15 @@ void GBVideo::update()
 	else
 	{
 		hline_t = t%456;
+		logger.trace("hline_t=", hline_t);
 		if (LY == LYC)
 		{
 			STAT = set_bit(STAT, 2); // set coincidence flag
 			if (hline_t == 0 && check_bit(STAT, 6))
+			{
+				logger.trace("Requesting IRQ_LCD_STAT");
 				core->irq(GameBoy::IRQ_LCD_STAT);
+			}
 		}
 
 		if (hline_t < 80)
@@ -144,7 +157,6 @@ void GBVideo::update()
 	// Draw at hline_t == 80, when the app cannot write to neither VRAM nor OAM
 	if (hline_t == 80)
 	{
-		int LCDC = core->memory.read(GBIO::LCDC);
 		int BGP  = core->memory.read(GBIO::BGP);
 		int pallette[4];
 		pallette[0] = BGP & 3;
@@ -155,7 +167,7 @@ void GBVideo::update()
 		if (check_bit(LCDC, 0))  // is BG display active?
 		{
 			u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
-			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0800 : 0x0000;
+			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
 			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 127;
 
 			// (vx    , vy    ) -> position of the pixel in the 256x256 bg
@@ -178,13 +190,21 @@ void GBVideo::update()
 				u8 color = ((current_row_high >> tile_x)&1) << 1 | 
 							((current_row_low >> tile_x)&1);
 
-				pixels[LY*pixels_per_line+x] = colors[pallette[color]];
+				pixels[2*(LY*pixels_per_line+x)] = colors[pallette[color]];
+				pixels[2*(LY*pixels_per_line+x)+1] = colors[pallette[color]];
+				pixels[2*(LY*pixels_per_line+x)+320] = colors[pallette[color]];
+				pixels[2*(LY*pixels_per_line+x)+321] = colors[pallette[color]];
 			}
 		}
 		else
 		{
 			for (int x=0; x<160; x++)
-				pixels[LY*pixels_per_line+x] = colors[0];
+			{
+				pixels[2*(LY*pixels_per_line+x)] = colors[0];
+				pixels[2*(LY*pixels_per_line+x)+1] = colors[0];
+				pixels[2*(LY*pixels_per_line+x)+320] = colors[0];
+				pixels[2*(LY*pixels_per_line+x)+321] = colors[0];
+			}
 		}
 
 	}

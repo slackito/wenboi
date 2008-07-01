@@ -13,6 +13,18 @@ using std::endl;
 using std::string;
 using std::vector;
 
+int str2int(string s)
+{
+	if (s[0] == '0') {
+		if (s[1] == 'x')
+			return strtol(s.c_str()+2, NULL, 16);
+		else if (s[1] >= '0' && s[1] <= '9')
+			return strtol(s.c_str()+1, NULL, 8);
+		else return 0;
+	}
+	return strtol(s.c_str(), NULL, 10);
+}
+
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
@@ -44,7 +56,7 @@ int main(int argc, char **argv)
 			}
 		}
 		
-		if (command == "step") 
+		if (command == "step" || command == "s") 
 		{
 			gb.run_cycle();
 			cout << gb.status_string() << endl;
@@ -52,13 +64,25 @@ int main(int argc, char **argv)
 		else if (command == "run" || command == "r") 
 		{
 			int status = gb.run();
-			cout << "run returned with status " << status << endl;
+			if (status == GameBoy::QUIT)
+			{
+				break;
+			}
+			else if (status == GameBoy::BREAKPOINT)
+			{
+				cout << "Breakpoint hit at " << gb.regs.PC << endl;
+				cout << gb.status_string() << endl;
+			}
+			else
+			{
+				cout << "run returned with status " << status << endl;
+			}
 		}
 		else if (command == "quit" || command == "q")
 		{
 			break;
 		}
-		else if (command == "disasm")
+		else if (command == "disasm" || command == "d")
 		{
 			int start, end, pos;
 			switch(arguments.size())
@@ -68,13 +92,13 @@ int main(int argc, char **argv)
 					end = start + 30;
 					break;
 				case 1:
-					start = atoi(arguments[0].c_str());
+					start = str2int(arguments[0]);
 					end = start + 30;
 					break;
 				case 2:
 				default:
-					start = atoi(arguments[0].c_str());
-					end   = atoi(arguments[1].c_str());
+					start = str2int(arguments[0]);
+					end   = str2int(arguments[1]);
 					break;
 			}
 			
@@ -94,6 +118,36 @@ int main(int argc, char **argv)
 				pos += len;
 			}
 
+		}
+		else if (command == "x")
+		{
+			int addr = str2int(arguments[0]);
+			cout << "[" << std::hex << std::setw(4) << std::setfill('0') <<
+				addr << "]\t";
+			if (arguments.size() > 1)
+			{
+				if (arguments[1] == "d")
+					cout << std::dec << int(gb.memory.read(addr)) << endl;
+			}
+			cout<< int(gb.memory.read(addr)) << endl;
+		}
+		else if (command == "break" || command == "b")
+		{
+			int addr = str2int(arguments[0]);
+			cout << "breakpoint #" << gb.set_breakpoint(addr) <<
+				" set at 0x" << std::hex << std::setw(4) << std::setfill('0') << addr << endl;
+		}
+		else if (command == "delete")
+		{
+			gb.delete_breakpoint(str2int(arguments[0]));
+		}
+		else if (command == "enable")
+		{
+			gb.enable_breakpoint(str2int(arguments[0]));
+		}
+		else if (command == "disable")
+		{
+			gb.disable_breakpoint(str2int(arguments[0]));
 		}
 		else 
 		{
