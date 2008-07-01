@@ -3,6 +3,7 @@
 #include "GBRom.h"
 #include "MBC.h"
 #include "Logger.h"
+#include "util.h"
 #include <sstream>
 #include <iomanip>
 #include <string>
@@ -418,7 +419,6 @@ GameBoy::run_status GameBoy::run_cycle()
 		case 0xBE: {//CP (HL)
 			int res = regs.A - memory.read(regs.HL);
 			int half_res = (regs.A & 0x0F) - (memory.read(regs.HL) & 0x0F);
-			regs.A = static_cast<u8>(res);
 
 			set_flag(ADD_SUB_FLAG);
 			set_flag_if (res < 0,      CARRY_FLAG);
@@ -431,7 +431,6 @@ GameBoy::run_status GameBoy::run_cycle()
 			int inm = memory.read(regs.PC++);
 			int res = regs.A - inm;
 			int half_res = (regs.A & 0x0F) - (inm & 0x0F);
-			regs.A = static_cast<u8>(res);
 
 			set_flag(ADD_SUB_FLAG);
 			set_flag_if (res < 0,      CARRY_FLAG);
@@ -568,6 +567,183 @@ GameBoy::run_status GameBoy::run_cycle()
 					reset_flag(HALF_CARRY_FLAG); 
 					break;
 				}
+				
+				// SLA n
+				for_each_register(0x27, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, SLA_reg)
+
+				// SLA (HL)
+				case 0x26: {
+					u8 value = memory.read(regs.HL);
+					bool carry = (value & 0x80) != 0;
+					value <<= 1;
+					memory.write(regs.HL, value);
+					set_flag_if(value == 0, ZERO_FLAG);
+					reset_flag(ADD_SUB_FLAG);
+					reset_flag(HALF_CARRY_FLAG);
+					set_flag_if(carry, CARRY_FLAG);
+					break;
+				}
+				
+				// SRA n
+				for_each_register(0x2F, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, SRA_reg)
+
+				// SRA (HL)
+				case 0x2E: {
+					u8 value = memory.read(regs.HL);
+					bool carry = (value & 0x01) != 0;
+					u8 MSB = value & 0x80;
+					value = (value >> 1) | MSB;
+					memory.write(regs.HL, value);
+					set_flag_if(value == 0, ZERO_FLAG);
+					reset_flag(ADD_SUB_FLAG);
+					reset_flag(HALF_CARRY_FLAG);
+					set_flag_if(carry, CARRY_FLAG);
+					break;
+				}
+
+				// SRL n
+				for_each_register(0x3F, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, SRL_reg)
+
+				// SRL (HL)
+				case 0x3E: {
+					u8 value = memory.read(regs.HL);
+					bool carry = (value & 0x01) != 0;
+					value >>= 1;
+					memory.write(regs.HL, value);
+					set_flag_if(value == 0, ZERO_FLAG);
+					reset_flag(ADD_SUB_FLAG);
+					reset_flag(HALF_CARRY_FLAG);
+					set_flag_if(carry, CARRY_FLAG);
+					break;
+				}
+
+				default: {
+					int bit_op = sub_opcode >> 6;
+					int reg = sub_opcode & 7;
+					int b   = (sub_opcode >> 3) & 7;
+					bool res;
+					switch (bit_op)
+					{
+						case 1: // BIT
+							switch(reg)
+							{
+								case 0:
+									res = check_bit(regs.B, b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+								case 1:
+									res = check_bit(regs.C, b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+								case 2:
+									res = check_bit(regs.D, b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+								case 3:
+									res = check_bit(regs.E, b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+								case 4:
+									res = check_bit(regs.H, b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+								case 5:
+									res = check_bit(regs.L, b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+								case 6:
+									res = check_bit(memory.read(regs.HL), b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+								case 7:
+									res = check_bit(regs.A, b);
+									set_flag_if(res == false, ZERO_FLAG);
+									reset_flag(ADD_SUB_FLAG);
+									set_flag(HALF_CARRY_FLAG);
+									break;
+							}
+							break;
+
+						case 2: // RES
+							switch(reg)
+							{
+								case 0:
+									regs.B = reset_bit(regs.B, b);
+									break;
+								case 1:
+									regs.C = reset_bit(regs.C, b);
+									break;
+								case 2:
+									regs.D = reset_bit(regs.D, b);
+									break;
+								case 3:
+									regs.E = reset_bit(regs.E, b);
+									break;
+								case 4:
+									regs.H = reset_bit(regs.H, b);
+									break;
+								case 5:
+									regs.L = reset_bit(regs.L, b);
+									break;
+								case 6:
+									memory.write(regs.HL, reset_bit(memory.read(regs.HL), b));
+									break;
+								case 7:
+									regs.A = reset_bit(regs.A, b);
+									break;
+							}
+							break;
+
+						case 3: // SET
+							switch(reg)
+							{
+								case 0:
+									regs.B = set_bit(regs.B, b);
+									break;
+								case 1:
+									regs.C = set_bit(regs.C, b);
+									break;
+								case 2:
+									regs.D = set_bit(regs.D, b);
+									break;
+								case 3:
+									regs.E = set_bit(regs.E, b);
+									break;
+								case 4:
+									regs.H = set_bit(regs.H, b);
+									break;
+								case 5:
+									regs.L = set_bit(regs.L, b);
+									break;
+								case 6:
+									memory.write(regs.HL, set_bit(memory.read(regs.HL), b));
+									break;
+								case 7:
+									regs.A = set_bit(regs.A, b);
+									break;
+							}
+							break;
+						
+						default:
+							logger.critical("Unknown sub-opcode after 0xCB");
+							break;
+					}
+				}
+					
 			}
 			break;
 		}
@@ -702,15 +878,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			reset_flag(HALF_CARRY_FLAG);
 			break;
 		}
-		
 
-
-
-
-		
-
-
-		// TODO: Bit instructions
 		
 		// Jumps
 		// JP nn
@@ -763,34 +931,34 @@ GameBoy::run_status GameBoy::run_cycle()
 		// JR n
 		case 0x18:
 			// -1 because PC is now pointing past the opcode
-			regs.PC += static_cast<s8>(memory.read(regs.PC)) - 1;
+			regs.PC += static_cast<s8>(memory.read(regs.PC++));
 			break;
 
 		// JR cc, n
 		case 0x20: { // JR NZ, n
 			s8 offset = static_cast<s8>(memory.read(regs.PC++));
-			if (!check_flag(ZERO_FLAG)) // -1 because PC is now pointing past the opcode
+			if (!check_flag(ZERO_FLAG)) 
 				regs.PC += offset;
 			break;
 		}
 
 		case 0x28: { // JR Z, n
 			s8 offset = static_cast<s8>(memory.read(regs.PC++));
-			if (check_flag(ZERO_FLAG)) // -1 because PC is now pointing past the opcode
+			if (check_flag(ZERO_FLAG)) 
 				regs.PC += offset;
 			break;
 		}
 
 		case 0x30: { // JR NC, n
 			s8 offset = static_cast<s8>(memory.read(regs.PC++));
-			if (!check_flag(CARRY_FLAG)) // -1 because PC is now pointing past the opcode
+			if (!check_flag(CARRY_FLAG)) 
 				regs.PC += offset;
 			break;
 		}
 
 		case 0x38: { // JR C, n
 			s8 offset = static_cast<s8>(memory.read(regs.PC++));
-			if (check_flag(CARRY_FLAG)) // -1 because PC is now pointing past the opcode
+			if (check_flag(CARRY_FLAG)) 
 				regs.PC += offset;
 			break;
 		}
@@ -928,11 +1096,11 @@ GameBoy::run_status GameBoy::run_cycle()
 
 	// Check for interrupts before opcode fetching
 	u8 IE=memory.read(0xFFFF);
-	logger.trace("IME=", int(IME), " IE=", int(IE));
+	//logger.trace("IME=", int(IME), " IE=", int(IE));
 	if (IME && IE)
 	{
 		u8 IF = memory.read(0xFF0F);
-		logger.trace("Dispatching interrupts: IE=", int(IE), " IF=", int(IF));
+		//logger.trace("Dispatching interrupts: IE=", int(IE), " IF=", int(IF));
 		if (IF)
 		{
 			if ((IF & IRQ_VBLANK) && (IE & IRQ_VBLANK)) 
@@ -1063,7 +1231,8 @@ std::string GameBoy::status_string() const
 		" E = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.E) <<
 		" H = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.H) <<
 		" L = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.L) <<
-		"\tflags = " << int(regs.flags) << "\tZF = " << check_flag(ZERO_FLAG);
+		"\tflags = " << int(regs.flags) << "\tZF = " << check_flag(ZERO_FLAG) << std::endl <<
+		"IME = " << int(IME) << " IE = " << int(memory.read(0xFFFF)) << " IF = " << int(memory.read(0xFF0F));
 	return result.str();
 }
 
@@ -1271,6 +1440,35 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 
 				// RR (HL) (through carry)
 				dis__reg16_(0x1E, "RR", HL)
+
+				// SLA n
+				dis_for_each_register(0x27, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, "SLA", dis_reg)
+
+				// SLA (HL)
+				dis__reg16_(0x26, "SLA", HL)
+
+				// SRA n
+				dis_for_each_register(0x2F, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, "SRA", dis_reg)
+				
+				// SRA (HL)
+				dis__reg16_(0x2E, "SRA", HL)
+
+				// SRL n
+				dis_for_each_register(0x3F, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, "SRA", dis_reg)
+				
+				// SRL (HL)
+				dis__reg16_(0x3E, "SRA", HL)
+
+				default: {
+					int bit_op = sub_opcode >> 6;
+					int reg = sub_opcode & 7;
+					int b   = (sub_opcode >> 3) & 7;
+					const char *bit_ops[4]={"Unknown", "BIT", "RES", "SET"};
+					const char *regs[8]={"B","C","D","E","H","L","(HL)", "A"};
+					result << bit_ops[bit_op] << " " << b << ", " << regs[reg];
+					break;
+				}
+				
 			}
 			break;
 		}

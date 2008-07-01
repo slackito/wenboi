@@ -267,7 +267,39 @@
 	}
 
 
+#define SLA_reg(opcode, reg) \
+	case opcode: { \
+		bool carry = (regs.reg & 0x80) != 0; \
+		regs.reg <<= 1; \
+		set_flag_if(regs.reg == 0, ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		set_flag_if(carry, CARRY_FLAG); \
+		break; \
+	}
 
+#define SRA_reg(opcode, reg) \
+	case opcode: { \
+		bool carry = (regs.reg & 0x01) != 0; \
+		u8 MSB = regs.reg & 0x80; \
+		regs.reg = (regs.reg >> 1) | MSB; \
+		set_flag_if(regs.reg == 0, ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		set_flag_if(carry, CARRY_FLAG); \
+		break; \
+	}
+
+#define SRL_reg(opcode, reg) \
+	case opcode: { \
+		bool carry = (regs.reg & 0x01) != 0; \
+		regs.reg >>= 1; \
+		set_flag_if(regs.reg == 0, ZERO_FLAG); \
+		reset_flag(ADD_SUB_FLAG); \
+		reset_flag(HALF_CARRY_FLAG); \
+		set_flag_if(carry, CARRY_FLAG); \
+		break; \
+	}
 
 
 
