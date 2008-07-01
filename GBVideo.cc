@@ -9,6 +9,8 @@ GBVideo::GBVideo(GameBoy *core):
 	display(0),
 	core(core),
 	frames_rendered(0),
+	cycles_until_next_update(0),
+	mode(2),
 	display_mode(NORMAL)
 {
 	SDL_Init(SDL_INIT_VIDEO);
@@ -31,7 +33,7 @@ GBVideo::~GBVideo()
 
 u8   GBVideo::read_VRAM (int addr) const
 {
-	int STAT = core->memory.read(GBIO::STAT);
+	int STAT = core->memory.IO.ports[GBIO::I_STAT];
 	if ((STAT & 3) == 3)
 		return 0xFF; // VRAM access disabled
 	else
@@ -40,7 +42,7 @@ u8   GBVideo::read_VRAM (int addr) const
 
 u8   GBVideo::read_OAM  (int addr) const
 {
-	int STAT = core->memory.read(GBIO::STAT);
+	int STAT = core->memory.IO.ports[GBIO::I_STAT];
 	if ((STAT & 3) >= 2)
 		return 0xFF; // OAM access disabled
 	else
@@ -49,7 +51,7 @@ u8   GBVideo::read_OAM  (int addr) const
 
 void GBVideo::write_VRAM(int addr, u8 value)
 {
-	int STAT = core->memory.read(GBIO::STAT);
+	int STAT = core->memory.IO.ports[GBIO::I_STAT];
 	if ((STAT & 3) == 3)
 		return; // VRAM access disabled
 	else
@@ -58,7 +60,7 @@ void GBVideo::write_VRAM(int addr, u8 value)
 
 void GBVideo::write_OAM (int addr, u8 value)
 {
-	int STAT = core->memory.read(GBIO::STAT);
+	int STAT = core->memory.IO.ports[GBIO::I_STAT];
 	if ((STAT & 3) >= 2)
 		return; // OAM access disabled
 	else
@@ -83,180 +85,203 @@ void GBVideo::update()
 	// mode 0 starts at 252, 708, 1164...
 	// vblank starts at 65664
 
+	if (cycles_until_next_update == 0)
+	{
+		int STAT = core->memory.IO.ports[GBIO::I_STAT];
+		int LYC  = core->memory.IO.ports[GBIO::I_LYC];
+		int LY  = core->memory.IO.ports[GBIO::I_LY];
+
+		switch (mode)
+		{
+			case 0:
+				// HBlank (preserve bits 2-6, mode = 0)
+				STAT = (STAT&0xFC);
+				if (check_bit(STAT, 3))
+				{
+					logger.trace("Requesting IRQ_LCD_STAT -- HBLANK");
+					core->irq(GameBoy::IRQ_LCD_STAT);
+				}
+				cycles_until_next_update = 204;
+				if (LY == 143)
+					mode = 1;
+				else
+					mode = 2;
+				break;
+			case 1:
+				if (LY == 144)
+				{
+					logger.trace("Requesting IRQ_VBLANK");
+					core->irq(GameBoy::IRQ_VBLANK);
+
+					if (check_bit(STAT,4))
+					{
+						logger.trace("Requesting IRQ_LCD_STAT -- VBLANK");
+						core->irq(GameBoy::IRQ_LCD_STAT);
+					}
+					SDL_Flip(display);
+					frames_rendered++;
+					char buf[50];
+					sprintf(buf, "%d", frames_rendered);
+					SDL_WM_SetCaption(buf, 0);
+
+					// preserve bits 3-6, set mode to 1 (VBlank) and coincidence to 0
+					STAT = (STAT&0xF8) | 1;
+				}
+				cycles_until_next_update = 456;
+				if (LY == 153)
+					mode = 2;
+				else
+					mode = 1;
+				break;
+			case 2: {
+				if (LY == LYC)
+				{
+					STAT = set_bit(STAT, 2); // set coincidence flag
+					if (check_bit(STAT, 6))
+					{
+						logger.trace("Requesting IRQ_LCD_STAT -- LY = LYC = ", LY, " EI=", int(core->memory.IE), 
+								" IME =", int(core->IME));
+						core->irq(GameBoy::IRQ_LCD_STAT);
+					}
+				}
+
+				if (check_bit(STAT, 5)) 
+				{
+					logger.trace("Requesting IRQ_LCD_STAT -- Mode 2");
+					core->irq(GameBoy::IRQ_LCD_STAT);
+				}
+
+				// preserve bits 2-6, set mode 2
+				STAT = (STAT&0xFC) | 2;
+				cycles_until_next_update = 80;
+				mode = 3;
+				break;
+			}
+			case 3:
+				draw();
+				// preserve bits 2-6, set mode 3
+				STAT = (STAT&0xFC) | 3;
+				cycles_until_next_update = 172;
+				mode = 0;
+				break;
+		}
+		
+		if (mode == 1 || mode == 2)
+		{
+			LY = (LY+1)%154;
+			logger.trace(LY);
+			core->memory.IO.ports[GBIO::I_LY] = LY;
+		}
+
+
+		core->memory.IO.ports[GBIO::I_STAT] = STAT;
+	}
+
+	--cycles_until_next_update;
+	return;
+}
+
+void GBVideo::draw()
+{
 	u32 *pixels = static_cast<u32*>(display->pixels);
 	u32 pixels_per_line = display->pitch/display->format->BytesPerPixel;
 
-	int LCDC = core->memory.read(GBIO::LCDC);
-	int STAT = core->memory.read(GBIO::STAT);
-	int LYC  = core->memory.read(GBIO::LYC);
+	int LCDC = core->memory.IO.ports[GBIO::I_LCDC];
+	int LY  = core->memory.IO.ports[GBIO::I_LY];
 
-	int t = core->cycle_count % 70224;
-	int hline_t=-1;
-	int LY = t/456;
-
-	if (t >= 65664)
-	{
-		if (t == 65664)
-		{
-			logger.trace("Requesting IRQ_VBLANK");
-			core->irq(GameBoy::IRQ_VBLANK);
-
-			if (check_bit(STAT,4))
-			{
-				logger.trace("Requesting IRQ_LCD_STAT -- VBLANK");
-				core->irq(GameBoy::IRQ_LCD_STAT);
-			}
-			SDL_Flip(display);
-			frames_rendered++;
-			char buf[50];
-			sprintf(buf, "%d", frames_rendered);
-			SDL_WM_SetCaption(buf, 0);
-		}
-
-		// preserve bits 3-6, set mode to 1 (VBlank) and coincidence to 0
-		STAT = (STAT&0xF8) | 1;
-	}
-	else
-	{
-		hline_t = t%456;
-		if (hline_t == 0 && LY == LYC)
-		{
-			STAT = set_bit(STAT, 2); // set coincidence flag
-			if (hline_t == 0 && check_bit(STAT, 6))
-			{
-				logger.trace("Requesting IRQ_LCD_STAT -- LY = LYC = ", LY, " EI=", int(core->memory.read(0xFFFF)), 
-						" IME =", int(core->IME));
-				core->irq(GameBoy::IRQ_LCD_STAT);
-			}
-		}
-
-		if (hline_t < 80)
-		{
-			if (hline_t == 0 && check_bit(STAT, 5)) {
-				logger.trace("Requesting IRQ_LCD_STAT -- Mode 2");
-				core->irq(GameBoy::IRQ_LCD_STAT);
-			}
-
-			// preserve bits 2-6, set mode 2
-			STAT = (STAT&0xFC) | 2;
-		}
-		else if (hline_t < 252)
-		{
-			// preserve bits 2-6, set mode 3
-			STAT = (STAT&0xFC) | 3;
-		}
-		else
-		{
-			// HBlank (preserve bits 2-6, mode = 0)
-			STAT = (STAT&0xFC);
-			if (hline_t == 252 && check_bit(STAT, 3))
-			{
-				logger.trace("Requesting IRQ_LCD_STAT -- HBLANK");
-				core->irq(GameBoy::IRQ_LCD_STAT);
-			}
-		}
-		
-	}
-	
-	core->memory.write(GBIO::LY, LY);
-	core->memory.write(GBIO::STAT, STAT);
-
-	if (display_mode == NORMAL)
+	if (LY < 144 && display_mode == NORMAL)
 	{
 		// Draw the background
 		// Draw at hline_t == 80, when the app cannot write to neither VRAM nor OAM
-		if (hline_t == 80)
+		int BGP  = core->memory.IO.ports[GBIO::I_BGP];
+		int pallette[4];
+		pallette[0] = BGP & 3;
+		pallette[1] = (BGP>>2) & 3;
+		pallette[2] = (BGP>>4) & 3;
+		pallette[3] = (BGP>>6) & 3;
+		
+		if (check_bit(LCDC, 0))  // is BG display active?
 		{
-			int BGP  = core->memory.read(GBIO::BGP);
-			int pallette[4];
-			pallette[0] = BGP & 3;
-			pallette[1] = (BGP>>2) & 3;
-			pallette[2] = (BGP>>4) & 3;
-			pallette[3] = (BGP>>6) & 3;
-			
-			if (check_bit(LCDC, 0))  // is BG display active?
+			u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
+			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
+			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+
+			// (vx    , vy    ) -> position of the pixel in the 256x256 bg
+			// (map_x , map_y ) -> map coordinates of the current tile
+			// (tile_x, tile_y) -> position of the pixel in the tile
+			int SCX = core->memory.IO.ports[GBIO::I_SCX];
+			int SCY = core->memory.IO.ports[GBIO::I_SCY];
+			int vy = (LY + SCY) % 256;
+			int map_y = vy / 8;
+			int tile_y = vy % 8;
+			for (int x=0; x<160; x++)
 			{
-				u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
-				u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
-				int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+				int vx = (x+SCX) % 256;
+				int map_x = vx/8;
+				
+				if (LY == 0)
+					logger.trace("(",map_x, ",", map_y, ")");
 
-				// (vx    , vy    ) -> position of the pixel in the 256x256 bg
-				// (map_x , map_y ) -> map coordinates of the current tile
-				// (tile_x, tile_y) -> position of the pixel in the tile
-				int SCX = core->memory.read(GBIO::SCX);
-				int SCY = core->memory.read(GBIO::SCY);
-				int vy = (LY + SCY) % 256;
-				int map_y = vy / 8;
-				int tile_y = vy % 8;
-				for (int x=0; x<160; x++)
-				{
-					int vx = (x+SCX) % 256;
-					int map_x = vx/8;
-					int tile_x = 7-(vx%8);
-					u8 current_tile_index = VRAM[tile_map_addr+ 32*map_y + map_x] + tile_data_base;
-					u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
-					u8 current_row_low = VRAM[current_tile_addr+2*tile_y];
-					u8 current_row_high = VRAM[current_tile_addr+2*tile_y+1];
-					u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
-								((current_row_low >> tile_x)&1)]];
+				int tile_x = 7-(vx%8);
+				u8 current_tile_index = VRAM[tile_map_addr+ 32*map_y + map_x] + tile_data_base;
+				u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+				u8 current_row_low = VRAM[current_tile_addr+2*tile_y];
+				u8 current_row_high = VRAM[current_tile_addr+2*tile_y+1];
+				u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
+							((current_row_low >> tile_x)&1)]];
 
-					pixels[2*(LY*pixels_per_line+x)] = color;
-					pixels[2*(LY*pixels_per_line+x)+1] = color;
-					pixels[2*(LY*pixels_per_line+x)+320] = color;
-					pixels[2*(LY*pixels_per_line+x)+321] = color;
-				}
+				pixels[2*(LY*pixels_per_line+x)] = color;
+				pixels[2*(LY*pixels_per_line+x)+1] = color;
+				pixels[2*(LY*pixels_per_line+x)+320] = color;
+				pixels[2*(LY*pixels_per_line+x)+321] = color;
 			}
-			else
+		}
+		else
+		{
+			for (int x=0; x<160; x++)
 			{
-				for (int x=0; x<160; x++)
-				{
-					pixels[2*(LY*pixels_per_line+x)] = colors[0];
-					pixels[2*(LY*pixels_per_line+x)+1] = colors[0];
-					pixels[2*(LY*pixels_per_line+x)+320] = colors[0];
-					pixels[2*(LY*pixels_per_line+x)+321] = colors[0];
-				}
+				pixels[2*(LY*pixels_per_line+x)] = colors[0];
+				pixels[2*(LY*pixels_per_line+x)+1] = colors[0];
+				pixels[2*(LY*pixels_per_line+x)+320] = colors[0];
+				pixels[2*(LY*pixels_per_line+x)+321] = colors[0];
 			}
 		}
 	}
 	else if (display_mode == BG_MAP)
 	{
-		if (hline_t == 80)
+		int BGP  = core->memory.IO.ports[GBIO::I_BGP];
+		int pallette[4];
+		pallette[0] = BGP & 3;
+		pallette[1] = (BGP>>2) & 3;
+		pallette[2] = (BGP>>4) & 3;
+		pallette[3] = (BGP>>6) & 3;
+		u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
+		u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
+		int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+		for (int row=0; row < 32; row++)
 		{
-			int BGP  = core->memory.read(GBIO::BGP);
-			int pallette[4];
-			pallette[0] = BGP & 3;
-			pallette[1] = (BGP>>2) & 3;
-			pallette[2] = (BGP>>4) & 3;
-			pallette[3] = (BGP>>6) & 3;
-			u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
-			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
-			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
-			for (int row=0; row < 32; row++)
+			for (int col=0; col < 32; col++)
 			{
-				for (int col=0; col < 32; col++)
+				int ty = row*8;
+				int tx = col*8;
+				for (int y=0; y<8; y++)
 				{
-					int ty = row*8;
-					int tx = col*8;
-					for (int y=0; y<8; y++)
+					for (int x=0; x<8; x++)
 					{
-						for (int x=0; x<8; x++)
-						{
-							u8 tile_x = 7-x;
-							u8 current_tile_index = VRAM[tile_map_addr+32*row + col] + tile_data_base;
-							u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
-							u8 current_row_low = VRAM[current_tile_addr+2*y];
-							u8 current_row_high = VRAM[current_tile_addr+2*y+1];
-							u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
-										((current_row_low >> tile_x)&1)]];
-							pixels[320*(ty+y)+(tx+x)] = color;
-						}
+						u8 tile_x = 7-x;
+						u8 current_tile_index = VRAM[tile_map_addr+32*row + col] + tile_data_base;
+						u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+						u8 current_row_low = VRAM[current_tile_addr+2*y];
+						u8 current_row_high = VRAM[current_tile_addr+2*y+1];
+						u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
+									((current_row_low >> tile_x)&1)]];
+						pixels[320*(ty+y)+(tx+x)] = color;
 					}
 				}
 			}
 		}
 	}
 }
-
 
 int GBVideo::poll_event(SDL_Event *ev)
 {

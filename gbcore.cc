@@ -1095,11 +1095,11 @@ GameBoy::run_status GameBoy::run_cycle()
 	video.update();
 
 	// Check for interrupts before opcode fetching
-	u8 IE=memory.read(0xFFFF);
+	u8 IE=memory.IE;
 	//logger.trace("IME=", int(IME), " IE=", int(IE));
 	if (IME && IE)
 	{
-		u8 IF = memory.read(0xFF0F);
+		u8 IF = memory.IO.ports[GBIO::I_IF];
 		//logger.trace("Dispatching interrupts: IE=", int(IE), " IF=", int(IF));
 		if (IF)
 		{
@@ -1139,7 +1139,7 @@ GameBoy::run_status GameBoy::run_cycle()
 				logger.trace("JOYPAD IRQ");
 			}
 		}
-		memory.write(0xFF0F, IF);
+		memory.IO.ports[GBIO::I_IF] = IF;
 	}
 
 	
