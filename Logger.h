@@ -22,7 +22,7 @@ class Logger: public Singleton<Logger>
 
 		Logger(): 
 			out(std::cerr), 
-			current_log_level(TRACE),
+			current_log_level(WARNING),
 			log_start_time(time(NULL))
 		{
 			//log_start_time = time(NULL);
