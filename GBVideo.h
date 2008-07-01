@@ -17,6 +17,15 @@ class GBVideo
 	u32 colors[4];
 	u32 frames_rendered;
 
+	public:
+	enum DisplayMode {
+		NORMAL = 0,
+		BG_MAP,
+		WINDOW_MAP,
+	};
+
+	private:
+	DisplayMode display_mode;
 	
 	public:
 	static const u16 VRAM_BASE  = 0x8000;
@@ -33,6 +42,7 @@ class GBVideo
 
 	// drawing control
 	void update();
+	void set_display_mode(DisplayMode mode) { display_mode = mode; }
 
 	// event processing
 	int poll_event(SDL_Event *ev);
