@@ -1,4 +1,5 @@
 #include "../gbcore.h"
+#include "../Logger.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -24,6 +25,7 @@ int str2int(string s)
 	}
 	return strtol(s.c_str(), NULL, 10);
 }
+
 
 int main(int argc, char **argv)
 {
@@ -61,8 +63,12 @@ int main(int argc, char **argv)
 			gb.run_cycle();
 			cout << gb.status_string() << endl;
 		}
-		else if (command == "run" || command == "r") 
+		else if (command == "run" || command == "r" || command == "cont") 
 		{
+			if (command != "cont")
+			{
+				gb.reset();
+			}
 			int status = gb.run();
 			if (status == GameBoy::QUIT)
 			{
@@ -131,6 +137,13 @@ int main(int argc, char **argv)
 			}
 			cout<< int(gb.memory.read(addr)) << endl;
 		}
+		else if (command == "write")
+		{
+			int addr = str2int(arguments[0]);
+			u8 value = str2int(arguments[1]);
+
+			gb.memory.write(addr, value);
+		}
 		else if (command == "break" || command == "b")
 		{
 			int addr = str2int(arguments[0]);
@@ -148,6 +161,28 @@ int main(int argc, char **argv)
 		else if (command == "disable")
 		{
 			gb.disable_breakpoint(str2int(arguments[0]));
+		}
+		else if (command == "display")
+		{
+			if (arguments[0] == "bgmap")
+				gb.video.set_display_mode(GBVideo::BG_MAP);
+			else
+				gb.video.set_display_mode(GBVideo::NORMAL);
+		}
+		else if (command == "logger")
+		{
+			if (arguments[0] == "critical")
+				logger.set_log_level(Logger::CRITICAL);
+			else if (arguments[0] == "error")
+				logger.set_log_level(Logger::ERROR);
+			else if (arguments[0] == "warning")
+				logger.set_log_level(Logger::WARNING);
+			else if (arguments[0] == "info")
+				logger.set_log_level(Logger::INFO);
+			else if (arguments[0] == "debug")
+				logger.set_log_level(Logger::DEBUG);
+			else if (arguments[0] == "trace")
+				logger.set_log_level(Logger::TRACE);
 		}
 		else 
 		{
