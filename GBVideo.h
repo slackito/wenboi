@@ -16,8 +16,8 @@ class GBVideo
 
 	u32 colors[4];
 	u32 frames_rendered;
+	u32 t0;
 
-	int cycles_until_next_update;
 	int mode;
 
 	public:
@@ -47,7 +47,7 @@ class GBVideo
 
 	// drawing control
 	void draw();
-	void update();
+	u32 update();
 	void set_display_mode(DisplayMode mode) { display_mode = mode; }
 
 	// event processing

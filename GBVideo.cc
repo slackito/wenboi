@@ -9,12 +9,14 @@ GBVideo::GBVideo(GameBoy *core):
 	display(0),
 	core(core),
 	frames_rendered(0),
-	cycles_until_next_update(0),
+	t0(0),
 	mode(2),
 	display_mode(NORMAL)
 {
 	SDL_Init(SDL_INIT_VIDEO);
-	display=SDL_SetVideoMode(320,288,32,SDL_HWSURFACE | SDL_DOUBLEBUF);
+	display=SDL_SetVideoMode(320,288,32,SDL_SWSURFACE | SDL_DOUBLEBUF);
+
+	t0 = SDL_GetTicks();
 
 	colors[0] = SDL_MapRGB(display->format, 192,192,0);
 	colors[1] = SDL_MapRGB(display->format, 139,139,21);
@@ -88,7 +90,7 @@ void GBVideo::write_OAM (int addr, u8 value)
 
 #endif
 
-void GBVideo::update()
+u32 GBVideo::update()
 {
 	//Mode 0 is present between 201-207 clks, 2 about 77-83 clks, and 3
 	//about 169-175 clks. A complete cycle through these states takes 456
@@ -106,103 +108,103 @@ void GBVideo::update()
 	// mode 0 starts at 252, 708, 1164...
 	// vblank starts at 65664
 
-	if (cycles_until_next_update == 0)
+	int cycles_until_next_update=0;
+	int STAT = core->memory.high[GBMemory::I_STAT];
+	int LYC  = core->memory.high[GBMemory::I_LYC];
+	int LY  = core->memory.high[GBMemory::I_LY];
+
+	switch (mode)
 	{
-		int STAT = core->memory.high[GBMemory::I_STAT];
-		int LYC  = core->memory.high[GBMemory::I_LYC];
-		int LY  = core->memory.high[GBMemory::I_LY];
-
-		switch (mode)
-		{
-			case 0:
-				// HBlank (preserve bits 2-6, mode = 0)
-				STAT = (STAT&0xFC);
-				if (check_bit(STAT, 3))
-				{
-					logger.trace("Requesting IRQ_LCD_STAT -- HBLANK");
-					core->irq(GameBoy::IRQ_LCD_STAT);
-				}
-				cycles_until_next_update = 204;
-				if (LY == 143)
-					mode = 1;
-				else
-					mode = 2;
-				break;
-			case 1:
-				if (LY == 144)
-				{
-					logger.trace("Requesting IRQ_VBLANK");
-					core->irq(GameBoy::IRQ_VBLANK);
-
-					if (check_bit(STAT,4))
-					{
-						logger.trace("Requesting IRQ_LCD_STAT -- VBLANK");
-						core->irq(GameBoy::IRQ_LCD_STAT);
-					}
-					SDL_Flip(display);
-					frames_rendered++;
-					if (frames_rendered % 10 == 0)
-					{
-						char buf[50];
-						sprintf(buf, "%d", frames_rendered);
-						SDL_WM_SetCaption(buf, 0);
-					}
-
-					// preserve bits 3-6, set mode to 1 (VBlank) and coincidence to 0
-					STAT = (STAT&0xF8) | 1;
-				}
-				cycles_until_next_update = 456;
-				if (LY == 153)
-					mode = 2;
-				else
-					mode = 1;
-				break;
-			case 2: {
-				if (LY == LYC)
-				{
-					STAT = set_bit(STAT, 2); // set coincidence flag
-					if (check_bit(STAT, 6))
-					{
-						logger.trace("Requesting IRQ_LCD_STAT -- LY = LYC = ", LY, " EI=", int(core->memory.IE), 
-								" IME =", int(core->IME));
-						core->irq(GameBoy::IRQ_LCD_STAT);
-					}
-				}
-
-				if (check_bit(STAT, 5)) 
-				{
-					logger.trace("Requesting IRQ_LCD_STAT -- Mode 2");
-					core->irq(GameBoy::IRQ_LCD_STAT);
-				}
-
-				// preserve bits 2-6, set mode 2
-				STAT = (STAT&0xFC) | 2;
-				cycles_until_next_update = 80;
-				mode = 3;
-				break;
+		case 0:
+			// HBlank (preserve bits 2-6, mode = 0)
+			STAT = (STAT&0xFC);
+			if (check_bit(STAT, 3))
+			{
+				logger.trace("Requesting IRQ_LCD_STAT -- HBLANK");
+				core->irq(GameBoy::IRQ_LCD_STAT);
 			}
-			case 3:
-				draw();
-				// preserve bits 2-6, set mode 3
-				STAT = (STAT&0xFC) | 3;
-				cycles_until_next_update = 172;
-				mode = 0;
-				break;
-		}
-		
-		if (mode == 1 || mode == 2)
-		{
-			LY = (LY+1)%154;
-			logger.trace(LY);
-			core->memory.high[GBMemory::I_LY] = LY;
-		}
+			cycles_until_next_update = 204;
+			if (LY == 143)
+				mode = 1;
+			else
+				mode = 2;
+			break;
+		case 1:
+			if (LY == 144)
+			{
+				logger.trace("Requesting IRQ_VBLANK");
+				core->irq(GameBoy::IRQ_VBLANK);
 
+				if (check_bit(STAT,4))
+				{
+					logger.trace("Requesting IRQ_LCD_STAT -- VBLANK");
+					core->irq(GameBoy::IRQ_LCD_STAT);
+				}
+				SDL_Flip(display);
+				frames_rendered++;
+				u32 t1 = SDL_GetTicks();
+				if (t1-t0 > 1000)
+				{
+					char buf[50];
+					sprintf(buf, "%f FPS", frames_rendered/(0.001f*(t1-t0)));
+					SDL_WM_SetCaption(buf, 0);
+					t0=t1;
+					frames_rendered=0;
+				}
 
-		core->memory.high[GBMemory::I_STAT] = STAT;
+				// preserve bits 3-6, set mode to 1 (VBlank) and coincidence to 0
+				STAT = (STAT&0xF8) | 1;
+			}
+			cycles_until_next_update = 456;
+			if (LY == 153)
+				mode = 2;
+			else
+				mode = 1;
+			break;
+		case 2: {
+			if (LY == LYC)
+			{
+				STAT = set_bit(STAT, 2); // set coincidence flag
+				if (check_bit(STAT, 6))
+				{
+					logger.trace("Requesting IRQ_LCD_STAT -- LY = LYC = ", LY, " EI=", int(core->memory.IE), 
+							" IME =", int(core->IME));
+					core->irq(GameBoy::IRQ_LCD_STAT);
+				}
+			}
+
+			if (check_bit(STAT, 5)) 
+			{
+				logger.trace("Requesting IRQ_LCD_STAT -- Mode 2");
+				core->irq(GameBoy::IRQ_LCD_STAT);
+			}
+
+			// preserve bits 2-6, set mode 2
+			STAT = (STAT&0xFC) | 2;
+			cycles_until_next_update = 80;
+			mode = 3;
+			break;
+		}
+		case 3:
+			draw();
+			// preserve bits 2-6, set mode 3
+			STAT = (STAT&0xFC) | 3;
+			cycles_until_next_update = 172;
+			mode = 0;
+			break;
+	}
+	
+	if (mode == 1 || mode == 2)
+	{
+		LY = (LY+1)%154;
+		logger.trace(LY);
+		core->memory.high[GBMemory::I_LY] = LY;
 	}
 
-	--cycles_until_next_update;
-	return;
+
+	core->memory.high[GBMemory::I_STAT] = STAT;
+
+	return cycles_until_next_update;
 }
 
 void GBVideo::draw()

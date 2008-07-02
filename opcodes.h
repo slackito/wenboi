@@ -9,8 +9,8 @@
 #define for_each_register(opA, opB, opC, opD, opE, opH, opL, macro) \
 	macro(opA, A) \
 	macro(opB, B) \
-    macro(opC, C) \
-    macro(opD, D) \
+	macro(opC, C) \
+	macro(opD, D) \
 	macro(opE, E) \
 	macro(opH, H) \
 	macro(opL, L)
@@ -24,11 +24,13 @@
 #define LD_reg_nn(opcode, reg) \
 	case opcode: \
 		regs.reg = memory.read(regs.PC++); \
+		cycles_until_next_instruction = 8; \
 		break;
 
 #define LD_reg_reg(opcode, reg1, reg2) \
 	case opcode: \
 		regs.reg1 = regs.reg2; \
+		cycles_until_next_instruction = 4; \
 		break;
 
 #define LD_A_reg(opcode, reg2) LD_reg_reg(opcode, A, reg2)
@@ -43,12 +45,14 @@
 #define LD_reg__HL_(opcode, reg) \
 	case opcode: \
 		regs.reg = memory.read(regs.HL); \
+		cycles_until_next_instruction = 8; \
 		break;
 
 // LD (HL), reg
 #define LD__HL__reg(opcode, reg) \
 	case opcode: \
 		memory.write(regs.HL, regs.reg); \
+		cycles_until_next_instruction = 8; \
 		break;
 
 #define PUSH(opcode, regH, regL) \
@@ -56,6 +60,7 @@
 		memory.write(regs.SP-1, regs.regH); \
 		memory.write(regs.SP-2, regs.regL); \
 		regs.SP -= 2; \
+		cycles_until_next_instruction = 16; \
 		break;
 
 #define POP(opcode, regH, regL) \
@@ -63,6 +68,7 @@
 		regs.regL = memory.read(regs.SP); \
 		regs.regH = memory.read(regs.SP+1); \
 		regs.SP += 2; \
+		cycles_until_next_instruction = 12; \
 		break;
 
 #define ADD_A_reg(opcode, reg) \
@@ -75,6 +81,7 @@
 		set_flag_if (res > 0xFF,      CARRY_FLAG); \
 		set_flag_if (regs.A == 0,     ZERO_FLAG);  \
 		set_flag_if (half_res > 0x0F, HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -89,6 +96,7 @@
 		set_flag_if (res > 0xFF,      CARRY_FLAG); \
 		set_flag_if (regs.A == 0,     ZERO_FLAG);  \
 		set_flag_if (half_res > 0x0F, HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -101,6 +109,7 @@
 		set_flag_if (res < 0,      CARRY_FLAG); \
 		set_flag_if (res == 0,     ZERO_FLAG); \
 		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -114,6 +123,7 @@
 		set_flag_if (res < 0,      CARRY_FLAG); \
 		set_flag_if (res == 0,     ZERO_FLAG); \
 		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -124,6 +134,7 @@
 		reset_flag(ADD_SUB_FLAG); \
 		set_flag(HALF_CARRY_FLAG); \
 		reset_flag(CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -134,6 +145,7 @@
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		reset_flag(CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -144,6 +156,7 @@
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		reset_flag(CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -155,6 +168,7 @@
 		set_flag_if (res < 0,      CARRY_FLAG); \
 		set_flag_if (res == 0,     ZERO_FLAG); \
 		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -165,6 +179,7 @@
 		reset_flag(ADD_SUB_FLAG); \
 		set_flag_if (regs.reg == 0,   ZERO_FLAG); \
 		set_flag_if (half_res > 0x0F, HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -175,6 +190,7 @@
 		set_flag(ADD_SUB_FLAG); \
 		set_flag_if (regs.reg == 0, ZERO_FLAG); \
 		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 4; \
 		break; \
 	}
 
@@ -188,17 +204,20 @@
 		set_flag_if (res == 0,         ZERO_FLAG); \
 		set_flag_if (half_res > 0xFFF, HALF_CARRY_FLAG); \
 		set_flag_if (res > 0xFFFF,     CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 
 #define INC_reg16(opcode, reg16) \
 	case opcode: \
 		++regs.reg16; \
+		cycles_until_next_instruction = 8; \
 		break;
 
 #define DEC_reg16(opcode, reg16) \
 	case opcode: \
 		--regs.reg16; \
+		cycles_until_next_instruction = 8; \
 		break;
 
 #define SWAP_reg(opcode, reg) \
@@ -208,11 +227,13 @@
 		reset_flag(CARRY_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break;
 
 #define RST(opcode, n) \
 	case opcode: \
 		do_call(n); \
+		cycles_until_next_instruction = 32; \
 		break;
 
 
@@ -227,6 +248,7 @@
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 
@@ -238,6 +260,7 @@
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 
@@ -252,6 +275,7 @@
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 
@@ -263,6 +287,7 @@
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 
@@ -275,6 +300,7 @@
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		set_flag_if(carry, CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 
@@ -287,6 +313,7 @@
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		set_flag_if(carry, CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 
@@ -298,6 +325,7 @@
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		set_flag_if(carry, CARRY_FLAG); \
+		cycles_until_next_instruction = 8; \
 		break; \
 	}
 

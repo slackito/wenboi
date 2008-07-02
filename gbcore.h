@@ -70,6 +70,9 @@ class GameBoy
 	u8 HALT; // Is the CPU halted waiting for an interrupt?
 
 	u32 cycle_count;
+	u32 cycles_until_video_update;
+	u32 cycles_until_next_instruction;
+	static const u32 CYCLE_STEP = 4;
 	
 	inline void do_call(u16 addr)
 	{
@@ -91,6 +94,7 @@ class GameBoy
 		TRACEPOINT,
 		PAUSED,
 		QUIT,
+		WAIT,
 	};
 
 	// Constructors

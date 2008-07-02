@@ -60,7 +60,8 @@ int main(int argc, char **argv)
 		
 		if (command == "step" || command == "s") 
 		{
-			gb.run_cycle();
+			while(gb.run_cycle() == GameBoy::WAIT) {} // do nothing
+			
 			cout << gb.status_string() << endl;
 		}
 		else if (command == "run" || command == "r" || command == "cont") 
@@ -69,19 +70,31 @@ int main(int argc, char **argv)
 			{
 				gb.reset();
 			}
-			int status = gb.run();
-			if (status == GameBoy::QUIT)
+			if (arguments.size() == 0)
 			{
-				break;
+				int status = gb.run();
+				if (status == GameBoy::QUIT)
+				{
+					break;
+				}
+				else if (status == GameBoy::BREAKPOINT)
+				{
+					cout << "Breakpoint hit at " << gb.regs.PC << endl;
+					cout << gb.status_string() << endl;
+				}
+				else
+				{
+					cout << "run returned with status " << status << endl;
+				}
 			}
-			else if (status == GameBoy::BREAKPOINT)
+			else if (arguments.size() == 1)
 			{
-				cout << "Breakpoint hit at " << gb.regs.PC << endl;
+				int cycles = str2int(arguments[0]);
+
+				for (u32 i=0; i<cycles/gb.CYCLE_STEP; i++)
+					gb.run_cycle();
+				
 				cout << gb.status_string() << endl;
-			}
-			else
-			{
-				cout << "run returned with status " << status << endl;
 			}
 		}
 		else if (command == "quit" || command == "q")
@@ -183,6 +196,10 @@ int main(int argc, char **argv)
 				logger.set_log_level(Logger::DEBUG);
 			else if (arguments[0] == "trace")
 				logger.set_log_level(Logger::TRACE);
+		}
+		else if (command == "reset")
+		{
+			gb.reset();
 		}
 		else 
 		{
