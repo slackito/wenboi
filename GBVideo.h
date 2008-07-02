@@ -38,10 +38,12 @@ class GBVideo
 	~GBVideo();
 
 	// VRAM/OAM access
-	u8   read_VRAM (int addr) const;
-	u8   read_OAM  (int addr) const;
-	void write_VRAM(int addr, u8 value);
-	void write_OAM (int addr, u8 value);
+	inline u8   read_VRAM (int addr) const { return VRAM[addr-VRAM_BASE]; }
+	inline u8   read_OAM  (int addr) const { return OAM[addr-OAM_BASE]; } 
+	inline u16  read16_VRAM (int addr) const { return VRAM[addr-VRAM_BASE]+(VRAM[addr-VRAM_BASE+1] << 8); }
+	inline u16  read16_OAM  (int addr) const { return OAM[addr-OAM_BASE]+(OAM[addr-OAM_BASE+1] << 8); }
+	inline void write_VRAM(int addr, u8 value) { VRAM[addr-VRAM_BASE] = value; }
+	inline void write_OAM (int addr, u8 value) { OAM[addr-OAM_BASE] = value; }
 
 	// drawing control
 	void draw();

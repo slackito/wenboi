@@ -137,7 +137,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			regs.A = memory.read(regs.DE);
 			break;
 		case 0xFA: // LD A, (nn)
-			regs.A = memory.read(memory.read(regs.PC) + (memory.read(regs.PC+1)<<8));
+			regs.A = memory.read(memory.read16(regs.PC));
 			regs.PC+=2;
 			break;
 		
@@ -149,7 +149,7 @@ GameBoy::run_status GameBoy::run_cycle()
 			memory.write(regs.DE, regs.A);
 			break;
 		case 0xEA: // LD (nn), A
-			memory.write(memory.read(regs.PC) + (memory.read(regs.PC+1)<<8), regs.A);
+			memory.write(memory.read16(regs.PC), regs.A);
 			regs.PC+=2;
 			break;
 
@@ -185,29 +185,29 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		// LDH (n), A
 		case 0xE0: {
-			memory.write(0xFF00 + memory.read(regs.PC++), regs.A);
+			memory.high[memory.read(regs.PC++)] =  regs.A;
 			break;
 		}
 		// LDH A, (n)
 		case 0xF0:
-			regs.A = memory.read(0xFF00 + memory.read(regs.PC++));
+			regs.A = memory.high[memory.read(regs.PC++)];
 			break;
 
 		// LD n, nn
 		case 0x01: // LD BC, nn
-			regs.BC = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
+			regs.BC = memory.read16(regs.PC);
 			regs.PC +=2;
 			break;
 		case 0x11: // LD DE, nn
-			regs.DE = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
+			regs.DE = memory.read16(regs.PC);
 			regs.PC +=2;
 			break;
 		case 0x21: // LD HL, nn
-			regs.HL = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
+			regs.HL = memory.read16(regs.PC);
 			regs.PC +=2;
 			break;
 		case 0x31: // LD SP, nn
-			regs.SP = memory.read(regs.PC)+(memory.read(regs.PC+1) << 8);
+			regs.SP = memory.read16(regs.PC);
 			regs.PC +=2;
 			break;
 		
@@ -235,7 +235,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		// LD (nn), SP
 		case 0x08: {
-			int addr = memory.read(regs.PC) + (memory.read(regs.PC+1) << 8);
+			int addr = memory.read16(regs.PC);
 			regs.PC += 2;
 			memory.write(addr, regs.SP);
 			break;
@@ -883,12 +883,12 @@ GameBoy::run_status GameBoy::run_cycle()
 		// Jumps
 		// JP nn
 		case 0xC3:
-			regs.PC = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			regs.PC = memory.read16(regs.PC);
 			break;
 
 		// JP cc, nn
 		case 0xC2: { // JP NZ, nn
-			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			u16 dst = memory.read16(regs.PC);
 			if (!check_flag(ZERO_FLAG))
 				regs.PC = dst;
 			else
@@ -897,7 +897,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		}
 
 		case 0xCA: { // JP Z, nn
-			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			u16 dst = memory.read16(regs.PC);
 			if (check_flag(ZERO_FLAG))
 				regs.PC = dst;
 			else
@@ -906,7 +906,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		}
 
 		case 0xD2: { // JP NC, nn
-			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			u16 dst = memory.read16(regs.PC);
 			if (!check_flag(CARRY_FLAG))
 				regs.PC = dst;
 			else
@@ -915,7 +915,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		}
 
 		case 0xDA: { // JP C, nn
-			u16 dst = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			u16 dst = memory.read16(regs.PC);
 			if (check_flag(CARRY_FLAG))
 				regs.PC = dst;
 			else
@@ -966,7 +966,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		// Calls
 		// CALL nn
 		case 0xCD: {
-			u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+			u16 addr = memory.read16(regs.PC);
 			regs.PC += 2;
 			do_call(addr);
 			break;
@@ -975,7 +975,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		// CALL cc, nn
 		case 0xC4: { // CALL NZ, nn
 			if (!check_flag(ZERO_FLAG)) {
-				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read16(regs.PC);
 				regs.PC += 2;
 				do_call(addr);
 			} else {
@@ -986,7 +986,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		case 0xCC: { // CALL Z, nn
 			if (check_flag(ZERO_FLAG)) {
-				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read16(regs.PC);
 				regs.PC += 2;
 				do_call(addr);
 			} else {
@@ -997,7 +997,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		case 0xD4: { // CALL NC, nn
 			if (!check_flag(CARRY_FLAG)) {
-				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read16(regs.PC);
 				regs.PC += 2;
 				do_call(addr);
 			} else {
@@ -1008,7 +1008,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		case 0xDC: { // CALL C, nn
 			if (check_flag(CARRY_FLAG)) {
-				u16 addr = memory.read(regs.PC) | (memory.read(regs.PC+1)<<8);
+				u16 addr = memory.read16(regs.PC);
 				regs.PC += 2;
 				do_call(addr);
 			} else {
@@ -1030,7 +1030,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		// Returns
 		// RET
 		case 0xC9: {
-			u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+			u16 retaddr = memory.read16(regs.SP);
 			regs.SP += 2;
 			regs.PC = retaddr;
 			break;
@@ -1039,7 +1039,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		// RET cc
 		case 0xC0:  // RET NZ
 			if (!check_flag(ZERO_FLAG)) { 
-				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				u16 retaddr = memory.read16(regs.SP);
 				regs.SP += 2;
 				regs.PC = retaddr;
 			}
@@ -1047,7 +1047,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		case 0xC8:  // RET Z
 			if (check_flag(ZERO_FLAG)) { 
-				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				u16 retaddr = memory.read16(regs.SP);
 				regs.SP += 2;
 				regs.PC = retaddr;
 			}
@@ -1055,7 +1055,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		case 0xD0:  // RET NC
 			if (!check_flag(CARRY_FLAG)) { 
-				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				u16 retaddr = memory.read16(regs.SP);
 				regs.SP += 2;
 				regs.PC = retaddr;
 			}
@@ -1063,7 +1063,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 		case 0xD8:  // RET C
 			if (check_flag(CARRY_FLAG)) { 
-				u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+				u16 retaddr = memory.read16(regs.SP);
 				regs.SP += 2;
 				regs.PC = retaddr;
 			}
@@ -1072,7 +1072,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		// RETI
 		case 0xD9: {
 			// RET && EI
-			u16 retaddr = (memory.read(regs.SP+1)<<8) | memory.read(regs.SP);
+			u16 retaddr = memory.read16(regs.SP);
 			regs.SP += 2;
 			regs.PC = retaddr;
 			IME=1;
@@ -1095,11 +1095,11 @@ GameBoy::run_status GameBoy::run_cycle()
 	video.update();
 
 	// Check for interrupts before opcode fetching
-	u8 IE=memory.IE;
+	u8 IE=memory.high[GBMemory::I_IE];
 	//logger.trace("IME=", int(IME), " IE=", int(IE));
 	if (IME && IE)
 	{
-		u8 IF = memory.IO.ports[GBIO::I_IF];
+		u8 IF = memory.high[GBMemory::I_IF];
 		//logger.trace("Dispatching interrupts: IE=", int(IE), " IF=", int(IF));
 		if (IF)
 		{
@@ -1139,10 +1139,10 @@ GameBoy::run_status GameBoy::run_cycle()
 				logger.trace("JOYPAD IRQ");
 			}
 		}
-		memory.IO.ports[GBIO::I_IF] = IF;
+		memory.high[GBMemory::I_IF] = IF;
 	}
 
-	
+	/*
 	for(BreakpointMap::iterator i=breakpoints.begin();
 			i != breakpoints.end();
 			i++)
@@ -1150,6 +1150,7 @@ GameBoy::run_status GameBoy::run_cycle()
 		if (i->second.addr == regs.PC && i->second.enabled)
 			return BREAKPOINT;
 	}
+	*/
 	
 	return NORMAL;
 }

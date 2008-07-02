@@ -8,6 +8,7 @@ class MBC
 {
 	public:
 	virtual u8   read(int addr) const=0;
+	virtual u16  read16(int addr) const=0;
 	virtual void write(int addr, u8 value)=0;
 	virtual ~MBC() {};
 };
@@ -22,6 +23,7 @@ class NoMBC: public MBC
 	u8   read (int addr) const;
 	void write(int addr, u8 value);
 
+	u16  read16(int addr) const;
 };
 
 

@@ -23,10 +23,21 @@ u8 NoMBC::read(int addr) const
 {
 	if (addr <= 0x7FFF)
 		return ROM[addr];
-	else if ((addr&0xE000) == 0xA000)   //(addr >= 0xA000 && addr <= 0xBFFF)
+	else //if ((addr&0xE000) == 0xA000)   //(addr >= 0xA000 && addr <= 0xBFFF)
 		return RAM[addr-0xA000];
-	else
-		logger.error("NoMBC: Incorrect read");
+	//else
+	//	logger.error("NoMBC: Incorrect read");
+	return 0;
+}
+
+u16 NoMBC::read16(int addr) const
+{
+	if (addr <= 0x7FFF)
+		return ROM[addr]+(ROM[addr+1] << 8);
+	else //if ((addr&0xE000) == 0xA000)   //(addr >= 0xA000 && addr <= 0xBFFF)
+		return RAM[addr-0xA000] + (RAM[addr-0xA000+1] << 8);
+	//else
+	//	logger.error("NoMBC: Incorrect read");
 	return 0;
 }
 

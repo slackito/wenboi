@@ -31,41 +31,62 @@ GBVideo::~GBVideo()
 	SDL_Quit();
 }
 
+#if 0
 u8   GBVideo::read_VRAM (int addr) const
 {
-	int STAT = core->memory.IO.ports[GBIO::I_STAT];
-	if ((STAT & 3) == 3)
-		return 0xFF; // VRAM access disabled
-	else
+	//int STAT = core->memory.high[GBMemory::I_STAT];
+	//if ((STAT & 3) == 3)
+	//	return 0xFF; // VRAM access disabled
+	//else
 		return VRAM[addr-VRAM_BASE];
 }
 
 u8   GBVideo::read_OAM  (int addr) const
 {
-	int STAT = core->memory.IO.ports[GBIO::I_STAT];
-	if ((STAT & 3) >= 2)
-		return 0xFF; // OAM access disabled
-	else
+	//int STAT = core->memory.high[GBMemory::I_STAT];
+	//if ((STAT & 3) >= 2)
+	//	return 0xFF; // OAM access disabled
+	//else
 		return OAM[addr-OAM_BASE];
+}
+
+u16   GBVideo::read16_VRAM (int addr) const
+{
+	//int STAT = core->memory.high[GBMemory::I_STAT];
+	//if ((STAT & 3) == 3)
+	//	return 0xFF; // VRAM access disabled
+	//else
+		return VRAM[addr-VRAM_BASE]+(VRAM[addr-VRAM_BASE+1] << 8);
+}
+
+u16   GBVideo::read16_OAM  (int addr) const
+{
+	//int STAT = core->memory.high[GBMemory::I_STAT];
+	//if ((STAT & 3) >= 2)
+	//	return 0xFF; // OAM access disabled
+	//else
+		return OAM[addr-OAM_BASE]+(OAM[addr-OAM_BASE+1] << 8);
 }
 
 void GBVideo::write_VRAM(int addr, u8 value)
 {
-	int STAT = core->memory.IO.ports[GBIO::I_STAT];
-	if ((STAT & 3) == 3)
-		return; // VRAM access disabled
-	else
+	//int STAT = core->memory.high[GBMemory::I_STAT];
+	//if ((STAT & 3) == 3)
+	//	return; // VRAM access disabled
+	//else
 		VRAM[addr-VRAM_BASE] = value;
 }
 
 void GBVideo::write_OAM (int addr, u8 value)
 {
-	int STAT = core->memory.IO.ports[GBIO::I_STAT];
-	if ((STAT & 3) >= 2)
-		return; // OAM access disabled
-	else
+	//int STAT = core->memory.high[GBMemory::I_STAT];
+	//if ((STAT & 3) >= 2)
+	//	return; // OAM access disabled
+	//else
 		OAM[addr-OAM_BASE] = value;
 }
+
+#endif
 
 void GBVideo::update()
 {
@@ -87,9 +108,9 @@ void GBVideo::update()
 
 	if (cycles_until_next_update == 0)
 	{
-		int STAT = core->memory.IO.ports[GBIO::I_STAT];
-		int LYC  = core->memory.IO.ports[GBIO::I_LYC];
-		int LY  = core->memory.IO.ports[GBIO::I_LY];
+		int STAT = core->memory.high[GBMemory::I_STAT];
+		int LYC  = core->memory.high[GBMemory::I_LYC];
+		int LY  = core->memory.high[GBMemory::I_LY];
 
 		switch (mode)
 		{
@@ -120,9 +141,12 @@ void GBVideo::update()
 					}
 					SDL_Flip(display);
 					frames_rendered++;
-					char buf[50];
-					sprintf(buf, "%d", frames_rendered);
-					SDL_WM_SetCaption(buf, 0);
+					if (frames_rendered % 10 == 0)
+					{
+						char buf[50];
+						sprintf(buf, "%d", frames_rendered);
+						SDL_WM_SetCaption(buf, 0);
+					}
 
 					// preserve bits 3-6, set mode to 1 (VBlank) and coincidence to 0
 					STAT = (STAT&0xF8) | 1;
@@ -170,11 +194,11 @@ void GBVideo::update()
 		{
 			LY = (LY+1)%154;
 			logger.trace(LY);
-			core->memory.IO.ports[GBIO::I_LY] = LY;
+			core->memory.high[GBMemory::I_LY] = LY;
 		}
 
 
-		core->memory.IO.ports[GBIO::I_STAT] = STAT;
+		core->memory.high[GBMemory::I_STAT] = STAT;
 	}
 
 	--cycles_until_next_update;
@@ -186,14 +210,14 @@ void GBVideo::draw()
 	u32 *pixels = static_cast<u32*>(display->pixels);
 	u32 pixels_per_line = display->pitch/display->format->BytesPerPixel;
 
-	int LCDC = core->memory.IO.ports[GBIO::I_LCDC];
-	int LY  = core->memory.IO.ports[GBIO::I_LY];
+	int LCDC = core->memory.high[GBMemory::I_LCDC];
+	int LY  = core->memory.high[GBMemory::I_LY];
 
 	if (LY < 144 && display_mode == NORMAL)
 	{
 		// Draw the background
 		// Draw at hline_t == 80, when the app cannot write to neither VRAM nor OAM
-		int BGP  = core->memory.IO.ports[GBIO::I_BGP];
+		int BGP  = core->memory.high[GBMemory::I_BGP];
 		int pallette[4];
 		pallette[0] = BGP & 3;
 		pallette[1] = (BGP>>2) & 3;
@@ -209,8 +233,8 @@ void GBVideo::draw()
 			// (vx    , vy    ) -> position of the pixel in the 256x256 bg
 			// (map_x , map_y ) -> map coordinates of the current tile
 			// (tile_x, tile_y) -> position of the pixel in the tile
-			int SCX = core->memory.IO.ports[GBIO::I_SCX];
-			int SCY = core->memory.IO.ports[GBIO::I_SCY];
+			int SCX = core->memory.high[GBMemory::I_SCX];
+			int SCY = core->memory.high[GBMemory::I_SCY];
 			int vy = (LY + SCY) % 256;
 			int map_y = vy / 8;
 			int tile_y = vy % 8;
@@ -249,7 +273,7 @@ void GBVideo::draw()
 	}
 	else if (display_mode == BG_MAP)
 	{
-		int BGP  = core->memory.IO.ports[GBIO::I_BGP];
+		int BGP  = core->memory.high[GBMemory::I_BGP];
 		int pallette[4];
 		pallette[0] = BGP & 3;
 		pallette[1] = (BGP>>2) & 3;
