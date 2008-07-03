@@ -68,6 +68,7 @@ class GameBoy
 
 	u8 IME; // Interrupt master enable flag
 	u8 HALT; // Is the CPU halted waiting for an interrupt?
+	u8 STOP; // Is the CPU & LCD halted waiting for a keypress?
 
 	u32 cycle_count;
 	u32 cycles_until_video_update;
