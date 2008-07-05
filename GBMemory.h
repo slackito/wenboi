@@ -41,6 +41,10 @@ class GBMemory
 	void write(int addr, u8 value);
 	
 	public:
+	static const u16 DIV  = 0xFF04; // Divider register     (R/W)
+	static const u16 TIMA = 0xFF05; // Timer counter        (R/W)
+	static const u16 TMA  = 0xFF06; // Timer modulo         (R/W)
+	static const u16 TAC  = 0xFF07; // Timer control        (R/W)
 	static const u16 LCDC = 0xFF40; // LCD Control          (R/W)
 	static const u16 STAT = 0xFF41; // LCD Status           (R/W)
 	static const u16 SCY  = 0xFF42; // Scroll Y             (R/W)
@@ -54,9 +58,13 @@ class GBMemory
 	static const u16 OBP1 = 0xFF49; // Object Pallete 1 data(R/W)
 	static const u16 DMA  = 0xFF46; // DMA Transfer & Start addr (W)
 	static const u16 IF   = 0xFF0F; // Interrupt flag       (R/W)
-	static const u16 IE   = 0xFF0F; // Interrupt enable       (R/W)
+	static const u16 IE   = 0xFF0F; // Interrupt enable     (R/W)
 
 	private:
+	static const u16 I_DIV  = 0xFF04 - IO_BASE; // Divider register     (R/W)
+	static const u16 I_TIMA = 0xFF05 - IO_BASE; // Timer counter        (R/W)
+	static const u16 I_TMA  = 0xFF06 - IO_BASE; // Timer modulo         (R/W)
+	static const u16 I_TAC  = 0xFF07 - IO_BASE; // Timer control        (R/W)
 	static const u16 I_LCDC = 0xFF40 - IO_BASE; // LCD Control          (R/W)
 	static const u16 I_STAT = 0xFF41 - IO_BASE; // LCD Status           (R/W)
 	static const u16 I_SCY  = 0xFF42 - IO_BASE; // Scroll Y             (R/W)

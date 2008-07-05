@@ -14,7 +14,12 @@ void GBMemory::write(int addr, u8 value)
 	else if (addr < 0xE000) WRAM[addr - WRAM_BASE] = value;
 	else if (addr < 0xFE00) write(addr-0x2000, value);
 	else if (addr < 0xFEA0) core->video.write_OAM (addr, value);
-	else if (addr >= 0xFF00) high[addr-0xFF00] = value;
+	else if (addr >= 0xFF00) {
+		high[addr-0xFF00] = value;
+		if (addr == DIV) {
+			high[I_DIV] = 0;
+		}
+	}
 	else {
 		std::ostringstream errmsg;
 		errmsg << "Invalid write address 0x" << 
@@ -39,7 +44,8 @@ u8  GBMemory::read(int addr) const
 		errmsg << "Invalid read address 0x" << 
 			std::hex << std::setw(4) << std::setfill('0') << addr;
 		logger.error(errmsg.str());
-		return *(static_cast<u8*>(0));
+		//return *(static_cast<u8*>(0));
+		return 0;
 	}
 }
 

@@ -73,6 +73,8 @@ class GameBoy
 	u32 cycle_count;
 	u32 cycles_until_video_update;
 	u32 cycles_until_next_instruction;
+	u8  divider_count; // resets every 256 cycles, so we don't need a cmp
+	u32 timer_count;
 	static const u32 CYCLE_STEP = 4;
 	
 	inline void do_call(u16 addr)
