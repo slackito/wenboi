@@ -17,7 +17,9 @@ class GBVideo
 	u32 colors[4];
 	u32 frames_rendered;
 	u32 t0;
+	u8 *oldscreen, *newscreen;
 
+	u8  cur_window_line;
 	int mode;
 
 	public:

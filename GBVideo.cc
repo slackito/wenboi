@@ -10,6 +10,8 @@ GBVideo::GBVideo(GameBoy *core):
 	core(core),
 	frames_rendered(0),
 	t0(0),
+	oldscreen(0), newscreen(0),
+	cur_window_line(0),
 	mode(2),
 	display_mode(NORMAL)
 {
@@ -17,6 +19,8 @@ GBVideo::GBVideo(GameBoy *core):
 	display=SDL_SetVideoMode(320,288,32,SDL_SWSURFACE | SDL_DOUBLEBUF);
 
 	t0 = SDL_GetTicks();
+	oldscreen = new u8[160*144];
+	newscreen = new u8[160*144];
 
 	colors[0] = SDL_MapRGB(display->format, 192,192,0);
 	colors[1] = SDL_MapRGB(display->format, 139,139,21);
@@ -31,6 +35,8 @@ GBVideo::GBVideo(GameBoy *core):
 GBVideo::~GBVideo()
 {
 	SDL_Quit();
+	delete [] oldscreen;
+	delete [] newscreen;
 }
 
 #if 0
@@ -140,7 +146,29 @@ u32 GBVideo::update()
 					logger.trace("Requesting IRQ_LCD_STAT -- VBLANK");
 					core->irq(GameBoy::IRQ_LCD_STAT);
 				}
+
+				if (display_mode == NORMAL)
+				{
+					
+					u32 *pixels = static_cast<u32*>(display->pixels);
+					u32 pixels_per_line = display->pitch/display->format->BytesPerPixel;
+					for (int y=0; y<144; y++)
+						for (int x=0; x<160; x++)
+						{
+							u32 offset = 160*y+x;
+							u32 dst_offset = 2*y*pixels_per_line+2*x;
+							u32 avg = colors[(newscreen[offset] + oldscreen[offset])>>1];
+							pixels[dst_offset]                   = avg;
+							pixels[dst_offset+1]                 = avg;
+							pixels[dst_offset+pixels_per_line]   = avg;
+							pixels[dst_offset+pixels_per_line+1] = avg;
+						}
+				}
+
+				memcpy(oldscreen, newscreen, 160*144);
+
 				SDL_Flip(display);
+				SDL_Delay(10);
 				frames_rendered++;
 				u32 t1 = SDL_GetTicks();
 				if (t1-t0 > 1000)
@@ -151,6 +179,9 @@ u32 GBVideo::update()
 					t0=t1;
 					frames_rendered=0;
 				}
+				
+				// reset window Y
+				cur_window_line=0;
 
 				// preserve bits 3-6, set mode to 1 (VBlank) and coincidence to 0
 				STAT = (STAT&0xF8) | 1;
@@ -197,7 +228,7 @@ u32 GBVideo::update()
 	if (mode == 1 || mode == 2)
 	{
 		LY = (LY+1)%154;
-		logger.trace(LY);
+		//logger.trace(LY);
 		core->memory.high[GBMemory::I_LY] = LY;
 	}
 
@@ -209,16 +240,13 @@ u32 GBVideo::update()
 
 void GBVideo::draw()
 {
-	u32 *pixels = static_cast<u32*>(display->pixels);
-	u32 pixels_per_line = display->pitch/display->format->BytesPerPixel;
 
 	int LCDC = core->memory.high[GBMemory::I_LCDC];
 	int LY  = core->memory.high[GBMemory::I_LY];
+	int WY  = core->memory.high[GBMemory::I_WY];
 
 	if (LY < 144 && display_mode == NORMAL)
 	{
-		// Draw the background
-		// Draw at hline_t == 80, when the app cannot write to neither VRAM nor OAM
 		int BGP  = core->memory.high[GBMemory::I_BGP];
 		int pallette[4];
 		pallette[0] = BGP & 3;
@@ -226,6 +254,7 @@ void GBVideo::draw()
 		pallette[2] = (BGP>>4) & 3;
 		pallette[3] = (BGP>>6) & 3;
 		
+		// Draw the background
 		if (check_bit(LCDC, 0))  // is BG display active?
 		{
 			u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
@@ -245,63 +274,102 @@ void GBVideo::draw()
 				int vx = (x+SCX) % 256;
 				int map_x = vx/8;
 				
-				if (LY == 0)
-					logger.trace("(",map_x, ",", map_y, ")");
-
 				int tile_x = 7-(vx%8);
 				u8 current_tile_index = VRAM[tile_map_addr+ 32*map_y + map_x] + tile_data_base;
 				u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
 				u8 current_row_low = VRAM[current_tile_addr+2*tile_y];
 				u8 current_row_high = VRAM[current_tile_addr+2*tile_y+1];
-				u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
-							((current_row_low >> tile_x)&1)]];
+				u8 color = pallette[((current_row_high >> tile_x)&1) << 1 | 
+							((current_row_low >> tile_x)&1)];
 
-				pixels[2*(LY*pixels_per_line+x)] = color;
-				pixels[2*(LY*pixels_per_line+x)+1] = color;
-				pixels[2*(LY*pixels_per_line+x)+320] = color;
-				pixels[2*(LY*pixels_per_line+x)+321] = color;
+				newscreen[160*LY+x] = color;
 			}
 		}
 		else
 		{
+			/*
 			for (int x=0; x<160; x++)
 			{
-				pixels[2*(LY*pixels_per_line+x)] = colors[0];
-				pixels[2*(LY*pixels_per_line+x)+1] = colors[0];
-				pixels[2*(LY*pixels_per_line+x)+320] = colors[0];
-				pixels[2*(LY*pixels_per_line+x)+321] = colors[0];
+				newscreen[160*LY+x] = 0;
+			}
+			*/
+		}
+	
+		logger.trace("LCDC=0x", std::hex, LCDC, " LY=", LY, " WY=", WY);
+		// Draw the window
+		if (check_bit(LCDC, 5) && LY > WY && LY < 144)  // is BG display active?
+		{
+			u16 tile_map_addr  = check_bit(LCDC,6) ? 0x1C00  : 0x1800;
+			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
+			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+
+			// (vx    , vy    ) -> position of the pixel in the 256x256 bg
+			// (map_x , map_y ) -> map coordinates of the current tile
+			// (tile_x, tile_y) -> position of the pixel in the tile
+			int WX = core->memory.high[GBMemory::I_WX] - 7;
+
+			logger.trace("Drawing window at (", WX, ",", WY, ")\tLY=", LY, " cur_window_line=", cur_window_line);
+
+			if (WX < 160)
+			{
+				u8  min_x = WX < 0 ? 0 : WX;
+
+				int vy = cur_window_line++;
+				int map_y = vy / 8;
+				int tile_y = vy % 8;
+				for (int x=min_x; x<160; x++)
+				{
+					int vx = x-WX;
+					int map_x = vx/8;
+					
+					int tile_x = 7-(vx%8);
+					u8 current_tile_index = VRAM[tile_map_addr+ 32*map_y + map_x] + tile_data_base;
+					u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+					u8 current_row_low = VRAM[current_tile_addr+2*tile_y];
+					u8 current_row_high = VRAM[current_tile_addr+2*tile_y+1];
+					u8 color = pallette[((current_row_high >> tile_x)&1) << 1 | 
+								((current_row_low >> tile_x)&1)];
+
+					newscreen[160*LY+x] = color;
+				}
 			}
 		}
+
 	}
 	else if (display_mode == BG_MAP)
 	{
-		int BGP  = core->memory.high[GBMemory::I_BGP];
-		int pallette[4];
-		pallette[0] = BGP & 3;
-		pallette[1] = (BGP>>2) & 3;
-		pallette[2] = (BGP>>4) & 3;
-		pallette[3] = (BGP>>6) & 3;
-		u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
-		u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
-		int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
-		for (int row=0; row < 32; row++)
+		if (LY==0)
 		{
-			for (int col=0; col < 32; col++)
+			u32 *pixels = static_cast<u32*>(display->pixels);
+			int BGP  = core->memory.high[GBMemory::I_BGP];
+			int pallette[4];
+			pallette[0] = BGP & 3;
+			pallette[1] = (BGP>>2) & 3;
+			pallette[2] = (BGP>>4) & 3;
+			pallette[3] = (BGP>>6) & 3;
+			u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
+			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
+			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+			for (int row=0; row < 32; row++)
 			{
-				int ty = row*8;
-				int tx = col*8;
-				for (int y=0; y<8; y++)
+				logger.trace("bgmap row=", row);
+				for (int col=0; col < 32; col++)
 				{
-					for (int x=0; x<8; x++)
+					int ty = row*8;
+					int tx = col*8;
+					for (int y=0; y<8; y++)
 					{
-						u8 tile_x = 7-x;
-						u8 current_tile_index = VRAM[tile_map_addr+32*row + col] + tile_data_base;
-						u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
-						u8 current_row_low = VRAM[current_tile_addr+2*y];
-						u8 current_row_high = VRAM[current_tile_addr+2*y+1];
-						u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
-									((current_row_low >> tile_x)&1)]];
-						pixels[320*(ty+y)+(tx+x)] = color;
+						for (int x=0; x<8; x++)
+						{
+							u8 tile_x = 7-x;
+							u8 current_tile_index = VRAM[tile_map_addr+32*row + col] + tile_data_base;
+							u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+							u8 current_row_low = VRAM[current_tile_addr+2*y];
+							u8 current_row_high = VRAM[current_tile_addr+2*y+1];
+							u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
+										((current_row_low >> tile_x)&1)]];
+							pixels[320*(ty+y)+(tx+x)] = color;
+						}
 					}
 				}
 			}

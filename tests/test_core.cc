@@ -29,7 +29,7 @@ int str2int(string s)
 
 int main(int argc, char **argv)
 {
-	if (argc != 2) {
+	if (argc < 2) {
 		cerr << "Usage: " << argv[0] << " rom_file" << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -39,25 +39,40 @@ int main(int argc, char **argv)
 
 	string line, command, last_command;
 	vector<string> arguments;
+	bool first_cmd = false;
+
+	if (argc == 2)
+	{
+		first_cmd = true;
+		command = "run";
+	}
 	
 	while(true)
 	{
-		cout << "(wenboi) ";
-		std::getline(cin, line, '\n');
-		if (!cin.good()) break; // if stdin is closed, exit main loop
-		if (line == "") command = last_command;
+		if (first_cmd)
+		{
+			first_cmd = false;
+		}
 		else
 		{
-			std::istringstream iss(line);
-			iss >> command;
-			arguments.clear();
-			while(iss.good()) {
-				string arg;
-				iss >> arg;
-				arguments.push_back(arg);
+			cout << "(wenboi) ";
+			std::getline(cin, line, '\n');
+			if (!cin.good()) break; // if stdin is closed, exit main loop
+			if (line == "") command = last_command;
+			else
+			{
+				std::istringstream iss(line);
+				iss >> command;
+				arguments.clear();
+				while(iss.good()) {
+					string arg;
+					iss >> arg;
+					arguments.push_back(arg);
+				}
 			}
 		}
-		
+
+
 		if (command == "step" || command == "s") 
 		{
 			while(gb.run_cycle() == GameBoy::WAIT) {} // do nothing
