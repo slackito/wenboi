@@ -3,13 +3,17 @@
 #include "Logger.h"
 #include "util.h"
 #include <iostream>
+#include <algorithm>
+#include <vector>
 
 
 GBVideo::GBVideo(GameBoy *core):
 	display(0),
 	core(core),
+	OAM(),
 	frames_rendered(0),
 	t0(0),
+	t_last_frame(0),
 	oldscreen(0), newscreen(0),
 	cur_window_line(0),
 	mode(2),
@@ -55,7 +59,7 @@ u8   GBVideo::read_OAM  (int addr) const
 	//if ((STAT & 3) >= 2)
 	//	return 0xFF; // OAM access disabled
 	//else
-		return OAM[addr-OAM_BASE];
+		return OAM.raw[addr-OAM_BASE];
 }
 
 u16   GBVideo::read16_VRAM (int addr) const
@@ -73,7 +77,7 @@ u16   GBVideo::read16_OAM  (int addr) const
 	//if ((STAT & 3) >= 2)
 	//	return 0xFF; // OAM access disabled
 	//else
-		return OAM[addr-OAM_BASE]+(OAM[addr-OAM_BASE+1] << 8);
+		return OAM.raw[addr-OAM_BASE]+(OAM.raw[addr-OAM_BASE+1] << 8);
 }
 
 void GBVideo::write_VRAM(int addr, u8 value)
@@ -91,7 +95,7 @@ void GBVideo::write_OAM (int addr, u8 value)
 	//if ((STAT & 3) >= 2)
 	//	return; // OAM access disabled
 	//else
-		OAM[addr-OAM_BASE] = value;
+		OAM.raw[addr-OAM_BASE] = value;
 }
 
 #endif
@@ -168,7 +172,6 @@ u32 GBVideo::update()
 				memcpy(oldscreen, newscreen, 160*144);
 
 				SDL_Flip(display);
-				SDL_Delay(10);
 				frames_rendered++;
 				u32 t1 = SDL_GetTicks();
 				if (t1-t0 > 1000)
@@ -179,7 +182,11 @@ u32 GBVideo::update()
 					t0=t1;
 					frames_rendered=0;
 				}
-				
+			
+				//u32 delay = t1 - t_last_frame < 6 ? 16-(t1-t_last_frame) : 0;
+				//SDL_Delay(16-delay);
+				//t_last_frame = t1;
+
 				// reset window Y
 				cur_window_line=0;
 
@@ -248,12 +255,27 @@ void GBVideo::draw()
 	if (LY < 144 && display_mode == NORMAL)
 	{
 		int BGP  = core->memory.high[GBMemory::I_BGP];
-		int pallette[4];
-		pallette[0] = BGP & 3;
-		pallette[1] = (BGP>>2) & 3;
-		pallette[2] = (BGP>>4) & 3;
-		pallette[3] = (BGP>>6) & 3;
+		int bg_pal[4];
+		bg_pal[0] = BGP & 3;
+		bg_pal[1] = (BGP>>2) & 3;
+		bg_pal[2] = (BGP>>4) & 3;
+		bg_pal[3] = (BGP>>6) & 3;
 		
+		int OBP0 = core->memory.high[GBMemory::I_OBP0];
+		int ob_pal0[4];
+		ob_pal0[0] = OBP0 & 3;
+		ob_pal0[1] = (OBP0>>2) & 3;
+		ob_pal0[2] = (OBP0>>4) & 3;
+		ob_pal0[3] = (OBP0>>6) & 3;
+		int OBP1 = core->memory.high[GBMemory::I_OBP1];
+		int ob_pal1[4];
+		ob_pal1[0] = OBP1 & 3;
+		ob_pal1[1] = (OBP1>>2) & 3;
+		ob_pal1[2] = (OBP1>>4) & 3;
+		ob_pal1[3] = (OBP1>>6) & 3;
+			
+		int line_base = 160*LY;
+
 		// Draw the background
 		if (check_bit(LCDC, 0))  // is BG display active?
 		{
@@ -279,23 +301,21 @@ void GBVideo::draw()
 				u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
 				u8 current_row_low = VRAM[current_tile_addr+2*tile_y];
 				u8 current_row_high = VRAM[current_tile_addr+2*tile_y+1];
-				u8 color = pallette[((current_row_high >> tile_x)&1) << 1 | 
-							((current_row_low >> tile_x)&1)];
+				u8 color = ((current_row_high >> tile_x)&1) << 1 | 
+							((current_row_low >> tile_x)&1);
 
-				newscreen[160*LY+x] = color;
+				newscreen[line_base+x] = color;
 			}
 		}
 		else
 		{
-			/*
 			for (int x=0; x<160; x++)
 			{
-				newscreen[160*LY+x] = 0;
+				newscreen[line_base+x] = 0;
 			}
-			*/
 		}
 	
-		logger.trace("LCDC=0x", std::hex, LCDC, " LY=", LY, " WY=", WY);
+		//logger.trace("LCDC=0x", std::hex, LCDC, " LY=", LY, " WY=", WY);
 		// Draw the window
 		if (check_bit(LCDC, 5) && LY > WY && LY < 144)  // is BG display active?
 		{
@@ -327,12 +347,70 @@ void GBVideo::draw()
 					u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
 					u8 current_row_low = VRAM[current_tile_addr+2*tile_y];
 					u8 current_row_high = VRAM[current_tile_addr+2*tile_y+1];
-					u8 color = pallette[((current_row_high >> tile_x)&1) << 1 | 
-								((current_row_low >> tile_x)&1)];
+					u8 color = ((current_row_high >> tile_x)&1) << 1 | 
+								((current_row_low >> tile_x)&1);
 
-					newscreen[160*LY+x] = color;
+					newscreen[line_base+x] = color;
 				}
 			}
+		}
+
+		// ------- SPRITES
+		if (check_bit(LCDC, 1))
+		{
+			int sprite_size = (LCDC & 0x4) >> 2;
+			std::vector<Sprite> v;
+			int sprite_height = sprite_size == EIGHT_BY_EIGHT? 8 : 16;
+
+			// find sprites in current line
+			for (int i=0; i<40; i++)
+			{
+				int y_orig = OAM.sprites[i].y - 16;
+				if (LY >= y_orig && LY < y_orig+sprite_height)
+					v.push_back(OAM.sprites[i]);
+			}
+
+			// sort sprites
+			std::stable_sort(v.begin(), v.end());
+
+			// draw sprites
+			u16 tile_data_addr = 0x0000;
+			int cur_x = 0;
+			for (u32 i=0; i<v.size() && i<10 ; i++)
+			{
+				int screen_x = std::max(cur_x, v[i].x-8);
+				int sprite_x = screen_x - (v[i].x-8);
+				int sprite_y = LY - v[i].y;
+				int current_tile_index = v[i].tile;
+				int pal_num = (v[i].flags & Sprite::NON_CGB_PAL_NUMBER) >> 4;
+				for (int x=sprite_x; x < 8; x++)
+				{
+					u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+					u8 current_row_low = VRAM[current_tile_addr+2*sprite_y];
+					u8 current_row_high = VRAM[current_tile_addr+2*sprite_y+1];
+					u8 color = ((current_row_high >> sprite_x)&1) << 1 | 
+								((current_row_low >> sprite_x)&1);
+
+					newscreen[line_base+screen_x+x] = color | (pal_num + 1 << 4);
+					logger.trace(pal_num + 1 << 4);
+				}
+
+				cur_x = v[i].x;
+			}
+		}	
+		// Apply pallettes to the line
+		for (int x=0; x<160; x++)
+		{
+			u8 pixel = newscreen[line_base+x];
+			u8 pal_tag = pixel >> 4;
+			u8 color = pixel & 0x3;
+			if (pal_tag == 0)
+				newscreen[line_base+x] = bg_pal[color];
+			else if (pal_tag == 1)
+				newscreen[line_base+x] = ob_pal0[color];
+			else
+				newscreen[line_base+x] = ob_pal1[color];
+
 		}
 
 	}
