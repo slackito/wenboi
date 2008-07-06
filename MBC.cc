@@ -14,7 +14,8 @@ MBC *create_MBC(GBRom *rom)
 		case ROM_ONLY:		return new NoMBC(rom);
 		//case MBC1:		return new MBC1(rom);
 		default:
-			logger.critical("Unsupported cartridge type");
+			logger.critical("Unsupported cartridge type ", 
+					int(rom->header.cartridge_type));
 			return 0;
 	}
 }
