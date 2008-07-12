@@ -23,9 +23,6 @@ class GBVideo
 		bool operator< (const Sprite& other) const { return (x < other.x); }
 	};
 
-	SDL_Surface *display;
-	GameBoy *core;
-
 	u8 VRAM[8192];
 	union {
 		u8 raw[160];
@@ -36,15 +33,21 @@ class GBVideo
 		EIGHT_BY_EIGHT=0,
 		EIGHT_BY_SIXTEEN=1,
 	};
+	
+	
+	SDL_Surface *display;
+	GameBoy *core;
+	
+	u8  cur_window_line;
+	int mode;
+	bool OAM_BUSY;
+	bool VRAM_BUSY;
 
 	u32 colors[4];
 	u32 frames_rendered;
 	u32 t0;
 	u32 t_last_frame;
 	u8 *oldscreen, *newscreen;
-
-	u8  cur_window_line;
-	int mode;
 
 	public:
 	enum DisplayMode {
@@ -57,19 +60,49 @@ class GBVideo
 	DisplayMode display_mode;
 	
 	public:
+	int cycles_until_next_update;
 	static const u16 VRAM_BASE  = 0x8000;
 	static const u16 OAM_BASE   = 0xFE00;
 
 	GBVideo(GameBoy *core);
 	~GBVideo();
 
+	void reset();
+
 	// VRAM/OAM access
-	inline u8   read_VRAM (int addr) const { return VRAM[addr-VRAM_BASE]; }
-	inline u8   read_OAM  (int addr) const { return OAM.raw[addr-OAM_BASE]; } 
-	inline u16  read16_VRAM (int addr) const { return VRAM[addr-VRAM_BASE]+(VRAM[addr-VRAM_BASE+1] << 8); }
-	inline u16  read16_OAM  (int addr) const { return OAM.raw[addr-OAM_BASE]+(OAM.raw[addr-OAM_BASE+1] << 8); }
-	inline void write_VRAM(int addr, u8 value) { VRAM[addr-VRAM_BASE] = value; }
-	inline void write_OAM (int addr, u8 value) { OAM.raw[addr-OAM_BASE] = value; }
+	inline u8   read_VRAM (int addr) const
+	{ 
+		if (!VRAM_BUSY) return VRAM[addr-VRAM_BASE]; 
+		else return 0xFF;
+	}
+
+	inline u8   read_OAM  (int addr) const 
+	{
+		if (!OAM_BUSY) return OAM.raw[addr-OAM_BASE]; 
+		else return 0xFF;			
+	} 
+
+	inline u16  read16_VRAM (int addr) const 
+	{ 
+		if (!VRAM_BUSY) return VRAM[addr-VRAM_BASE]+(VRAM[addr-VRAM_BASE+1] << 8);
+		else return 0xFF;
+	}
+
+	inline u16  read16_OAM  (int addr) const 
+	{
+		if (!OAM_BUSY) return OAM.raw[addr-OAM_BASE]+(OAM.raw[addr-OAM_BASE+1] << 8); 
+		else return 0xFF;
+	}
+
+	inline void write_VRAM(int addr, u8 value) 
+	{
+		if (!VRAM_BUSY) VRAM[addr-VRAM_BASE] = value; 
+	}
+
+	inline void write_OAM (int addr, u8 value) 
+	{ 
+		if (!OAM_BUSY) OAM.raw[addr-OAM_BASE] = value;
+	}
 
 	// drawing control
 	void draw();

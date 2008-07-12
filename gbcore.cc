@@ -19,7 +19,6 @@ GameBoy::GameBoy(std::string rom_name, GameBoyType type):
 	HALT(0),
 	STOP(0),
 	cycle_count(0),
-	cycles_until_video_update(0),
 	cycles_until_next_instruction(0),
 	divider_count(0),
 	timer_count(0),
@@ -41,8 +40,9 @@ void GameBoy::reset()
 	IME = 1;
 	HALT = 0;
 	cycle_count = 0;
-	cycles_until_video_update = 0;
 	cycles_until_next_instruction = 0;
+
+	video.reset();
 
 	regs.PC = 0x0100;
 	regs.AF = 0x01B0;
@@ -1319,9 +1319,9 @@ GameBoy::run_status GameBoy::run_cycle()
 	}
 
 	// Video
-	if (cycles_until_video_update <= 0)
-		cycles_until_video_update = video.update();
-	cycles_until_video_update -= CYCLE_STEP;
+	if (video.cycles_until_next_update <= 0)
+		video.update();
+	video.cycles_until_next_update -= CYCLE_STEP;
 	
 	// Divider
 	divider_count++;

@@ -71,7 +71,6 @@ class GameBoy
 	u8 STOP; // Is the CPU & LCD halted waiting for a keypress?
 
 	u32 cycle_count;
-	u32 cycles_until_video_update;
 	u32 cycles_until_next_instruction;
 	u8  divider_count; // resets every 256 cycles, so we don't need a cmp
 	u32 timer_count;

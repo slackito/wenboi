@@ -10,14 +10,17 @@
 GBVideo::GBVideo(GameBoy *core):
 	display(0),
 	core(core),
+	cur_window_line(0),
+	mode(2),
 	OAM(),
+	OAM_BUSY(false),
+	VRAM_BUSY(false),
 	frames_rendered(0),
 	t0(0),
 	t_last_frame(0),
 	oldscreen(0), newscreen(0),
-	cur_window_line(0),
-	mode(2),
-	display_mode(NORMAL)
+	display_mode(NORMAL),
+	cycles_until_next_update(0)
 {
 	SDL_Init(SDL_INIT_VIDEO);
 	display=SDL_SetVideoMode(320,288,32,SDL_SWSURFACE | SDL_DOUBLEBUF);
@@ -41,6 +44,11 @@ GBVideo::~GBVideo()
 	SDL_Quit();
 	delete [] oldscreen;
 	delete [] newscreen;
+}
+
+void GBVideo::reset()
+{
+	cycles_until_next_update = 0;
 }
 
 #if 0
@@ -118,7 +126,6 @@ u32 GBVideo::update()
 	// mode 0 starts at 252, 708, 1164...
 	// vblank starts at 65664
 
-	int cycles_until_next_update=0;
 	int STAT = core->memory.high[GBMemory::I_STAT];
 	int LYC  = core->memory.high[GBMemory::I_LYC];
 	int LY  = core->memory.high[GBMemory::I_LY];
@@ -128,6 +135,8 @@ u32 GBVideo::update()
 		case 0:
 			// HBlank (preserve bits 2-6, mode = 0)
 			STAT = (STAT&0xFC);
+			OAM_BUSY  = false;
+			VRAM_BUSY = false;
 			if (check_bit(STAT, 3))
 			{
 				logger.trace("Requesting IRQ_LCD_STAT -- HBLANK");
@@ -140,6 +149,8 @@ u32 GBVideo::update()
 				mode = 2;
 			break;
 		case 1:
+			OAM_BUSY  = false;
+			VRAM_BUSY = false;
 			if (LY == 144)
 			{
 				logger.trace("Requesting IRQ_VBLANK");
@@ -200,6 +211,8 @@ u32 GBVideo::update()
 				mode = 1;
 			break;
 		case 2: {
+			OAM_BUSY  = true;
+			VRAM_BUSY = false;
 			if (LY == LYC)
 			{
 				STAT = set_bit(STAT, 2); // set coincidence flag
@@ -224,6 +237,8 @@ u32 GBVideo::update()
 			break;
 		}
 		case 3:
+			OAM_BUSY  = false;
+			VRAM_BUSY = true;
 			draw();
 			// preserve bits 2-6, set mode 3
 			STAT = (STAT&0xFC) | 3;
