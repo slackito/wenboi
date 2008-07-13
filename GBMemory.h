@@ -58,7 +58,7 @@ class GBMemory
 	static const u16 OBP1 = 0xFF49; // Object Pallete 1 data(R/W)
 	static const u16 DMA  = 0xFF46; // DMA Transfer & Start addr (W)
 	static const u16 IF   = 0xFF0F; // Interrupt flag       (R/W)
-	static const u16 IE   = 0xFF0F; // Interrupt enable     (R/W)
+	static const u16 IE   = 0xFFFF; // Interrupt enable     (R/W)
 
 	private:
 	static const u16 I_DIV  = 0xFF04 - IO_BASE; // Divider register     (R/W)
@@ -78,7 +78,7 @@ class GBMemory
 	static const u16 I_OBP1 = 0xFF49 - IO_BASE; // Object Pallete 1 data(R/W)
 	static const u16 I_DMA  = 0xFF46 - IO_BASE; // DMA Transfer & Start addr (W)
 	static const u16 I_IF   = 0xFF0F - IO_BASE; // Interrupt flag       (R/W)
-	static const u16 I_IE   = 0xFF0F - IO_BASE; // Interrupt enable       (R/W)
+	static const u16 I_IE   = 0xFFFF - IO_BASE; // Interrupt enable       (R/W)
 };
 
 
