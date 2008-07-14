@@ -8,11 +8,11 @@
 
 
 GBVideo::GBVideo(GameBoy *core):
+	OAM(),
 	display(0),
 	core(core),
 	cur_window_line(0),
 	mode(2),
-	OAM(),
 	OAM_BUSY(false),
 	VRAM_BUSY(false),
 	frames_rendered(0),
@@ -51,62 +51,13 @@ void GBVideo::reset()
 	cycles_until_next_update = 0;
 }
 
-#if 0
-u8   GBVideo::read_VRAM (int addr) const
+void GBVideo::DMA_OAM (const u16 src)
 {
-	//int STAT = core->memory.high[GBMemory::I_STAT];
-	//if ((STAT & 3) == 3)
-	//	return 0xFF; // VRAM access disabled
-	//else
-		return VRAM[addr-VRAM_BASE];
+	for (u16 i=0; i<160; i++)
+	{
+		OAM.raw[i] = core->memory.read(src+i);
+	}
 }
-
-u8   GBVideo::read_OAM  (int addr) const
-{
-	//int STAT = core->memory.high[GBMemory::I_STAT];
-	//if ((STAT & 3) >= 2)
-	//	return 0xFF; // OAM access disabled
-	//else
-		return OAM.raw[addr-OAM_BASE];
-}
-
-u16   GBVideo::read16_VRAM (int addr) const
-{
-	//int STAT = core->memory.high[GBMemory::I_STAT];
-	//if ((STAT & 3) == 3)
-	//	return 0xFF; // VRAM access disabled
-	//else
-		return VRAM[addr-VRAM_BASE]+(VRAM[addr-VRAM_BASE+1] << 8);
-}
-
-u16   GBVideo::read16_OAM  (int addr) const
-{
-	//int STAT = core->memory.high[GBMemory::I_STAT];
-	//if ((STAT & 3) >= 2)
-	//	return 0xFF; // OAM access disabled
-	//else
-		return OAM.raw[addr-OAM_BASE]+(OAM.raw[addr-OAM_BASE+1] << 8);
-}
-
-void GBVideo::write_VRAM(int addr, u8 value)
-{
-	//int STAT = core->memory.high[GBMemory::I_STAT];
-	//if ((STAT & 3) == 3)
-	//	return; // VRAM access disabled
-	//else
-		VRAM[addr-VRAM_BASE] = value;
-}
-
-void GBVideo::write_OAM (int addr, u8 value)
-{
-	//int STAT = core->memory.high[GBMemory::I_STAT];
-	//if ((STAT & 3) >= 2)
-	//	return; // OAM access disabled
-	//else
-		OAM.raw[addr-OAM_BASE] = value;
-}
-
-#endif
 
 u32 GBVideo::update()
 {

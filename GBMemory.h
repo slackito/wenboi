@@ -36,9 +36,9 @@ class GBMemory
 	void init(MBC *mbc) { this->mbc = mbc; }
 
 
-	u8   read(int addr) const;
-	u16  read16(int addr) const;
-	void write(int addr, u8 value);
+	u8   read  (u16 addr) const;
+	u16  read16(u16 addr) const;
+	void write (u16 addr, u8 value);
 	
 	public:
 	static const u16 DIV  = 0xFF04; // Divider register     (R/W)

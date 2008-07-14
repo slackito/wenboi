@@ -6,7 +6,7 @@
 #include <sstream>
 #include <iomanip>
 	
-void GBMemory::write(int addr, u8 value)
+void GBMemory::write(u16 addr, u8 value)
 {
 	if (addr < 0x8000)      mbc->write(addr, value);
 	else if (addr < 0xA000) core->video.write_VRAM(addr, value);
@@ -16,9 +16,18 @@ void GBMemory::write(int addr, u8 value)
 	else if (addr < 0xFEA0) core->video.write_OAM (addr, value);
 	else if (addr >= 0xFF00) {
 		high[addr-0xFF00] = value;
-		if (addr == DIV) {
+		if (addr == DIV) 
+		{
 			high[I_DIV] = 0;
 		}
+		/*
+		else if (addr == DMA)
+		{
+			u16 dma_src = value << 8;
+			logger.warning("OAM DMA transfer from 0x", std::hex, std::setfill('0'), dma_src, " requested");
+			core->video.DMA_OAM(dma_src);
+		}
+		*/
 	}
 	else {
 		std::ostringstream errmsg;
@@ -30,7 +39,7 @@ void GBMemory::write(int addr, u8 value)
 }
 
 
-u8  GBMemory::read(int addr) const
+u8  GBMemory::read(u16 addr) const
 {
 	if (addr < 0x8000)      return mbc->read(addr);
 	else if (addr < 0xA000) return core->video.read_VRAM(addr);
@@ -49,7 +58,7 @@ u8  GBMemory::read(int addr) const
 	}
 }
 
-u16 GBMemory::read16(int addr) const
+u16 GBMemory::read16(u16 addr) const
 {
 	if (addr < 0x8000)      return mbc->read16(addr);
 	else if (addr < 0xA000) return core->video.read16_VRAM(addr);

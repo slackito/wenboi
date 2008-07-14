@@ -104,6 +104,10 @@ class GBVideo
 		if (!OAM_BUSY) OAM.raw[addr-OAM_BASE] = value;
 	}
 
+
+	// Write the whole OAM area via DMA
+	void DMA_OAM (const u16 src);
+
 	// drawing control
 	void draw();
 	u32 update();
