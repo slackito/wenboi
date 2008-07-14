@@ -3,6 +3,7 @@
 
 #include "GBMemory.h"
 #include "SDL.h"
+#include "util.h"
 
 class GameBoy;
 
@@ -70,40 +71,12 @@ class GBVideo
 	void reset();
 
 	// VRAM/OAM access
-	inline u8   read_VRAM (int addr) const
-	{ 
-		if (!VRAM_BUSY) return VRAM[addr-VRAM_BASE]; 
-		else return 0xFF;
-	}
-
-	inline u8   read_OAM  (int addr) const 
-	{
-		if (!OAM_BUSY) return OAM.raw[addr-OAM_BASE]; 
-		else return 0xFF;			
-	} 
-
-	inline u16  read16_VRAM (int addr) const 
-	{ 
-		if (!VRAM_BUSY) return VRAM[addr-VRAM_BASE]+(VRAM[addr-VRAM_BASE+1] << 8);
-		else return 0xFF;
-	}
-
-	inline u16  read16_OAM  (int addr) const 
-	{
-		if (!OAM_BUSY) return OAM.raw[addr-OAM_BASE]+(OAM.raw[addr-OAM_BASE+1] << 8); 
-		else return 0xFF;
-	}
-
-	inline void write_VRAM(int addr, u8 value) 
-	{
-		if (!VRAM_BUSY) VRAM[addr-VRAM_BASE] = value; 
-	}
-
-	inline void write_OAM (int addr, u8 value) 
-	{ 
-		if (!OAM_BUSY) OAM.raw[addr-OAM_BASE] = value;
-	}
-
+	inline u8   read_VRAM (int addr) const;
+	inline u8   read_OAM  (int addr) const;
+	inline u16  read16_VRAM (int addr) const;
+	inline u16  read16_OAM  (int addr) const;
+	inline void write_VRAM(int addr, u8 value);
+	inline void write_OAM (int addr, u8 value);
 
 	// Write the whole OAM area via DMA
 	void DMA_OAM (const u16 src);

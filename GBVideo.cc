@@ -59,6 +59,52 @@ void GBVideo::DMA_OAM (const u16 src)
 	}
 }
 
+u8   GBVideo::read_VRAM (int addr) const
+{ 
+	if (!VRAM_BUSY || 
+		!check_bit(core->memory.high[GBMemory::I_LCDC],7) ) 
+		return VRAM[addr-VRAM_BASE]; 
+	else return 0xFF;
+}
+
+u8   GBVideo::read_OAM  (int addr) const 
+{
+	if (!OAM_BUSY ||
+		!check_bit(core->memory.high[GBMemory::I_LCDC],7) ) 
+		return OAM.raw[addr-OAM_BASE]; 
+	else return 0xFF;			
+} 
+
+u16  GBVideo::read16_VRAM (int addr) const 
+{ 
+	if (!VRAM_BUSY ||
+		!check_bit(core->memory.high[GBMemory::I_LCDC],7) ) 
+		return VRAM[addr-VRAM_BASE]+(VRAM[addr-VRAM_BASE+1] << 8);
+	else return 0xFF;
+}
+
+u16  GBVideo::read16_OAM  (int addr) const 
+{
+	if (!OAM_BUSY ||
+		!check_bit(core->memory.high[GBMemory::I_LCDC],7) ) 
+			return OAM.raw[addr-OAM_BASE]+(OAM.raw[addr-OAM_BASE+1] << 8); 
+	else return 0xFF;
+}
+
+void GBVideo::write_VRAM(int addr, u8 value) 
+{
+	if (!VRAM_BUSY ||
+		!check_bit(core->memory.high[GBMemory::I_LCDC],7) ) 
+		VRAM[addr-VRAM_BASE] = value; 
+}
+
+void GBVideo::write_OAM (int addr, u8 value) 
+{ 
+	if (!OAM_BUSY ||
+		!check_bit(core->memory.high[GBMemory::I_LCDC],7) ) 
+		OAM.raw[addr-OAM_BASE] = value;
+}
+
 u32 GBVideo::update()
 {
 	//Mode 0 is present between 201-207 clks, 2 about 77-83 clks, and 3
@@ -86,8 +132,8 @@ u32 GBVideo::update()
 		case 0:
 			// HBlank (preserve bits 2-6, mode = 0)
 			STAT = (STAT&0xFC);
-			OAM_BUSY  = false;
-			VRAM_BUSY = false;
+			//OAM_BUSY  = false;
+			//VRAM_BUSY = false;
 			if (check_bit(STAT, 3))
 			{
 				logger.trace("Requesting IRQ_LCD_STAT -- HBLANK");
@@ -100,8 +146,8 @@ u32 GBVideo::update()
 				mode = 2;
 			break;
 		case 1:
-			OAM_BUSY  = false;
-			VRAM_BUSY = false;
+			//OAM_BUSY  = false;
+			//VRAM_BUSY = false;
 			if (LY == 144)
 			{
 				logger.trace("Requesting IRQ_VBLANK");
@@ -162,8 +208,8 @@ u32 GBVideo::update()
 				mode = 1;
 			break;
 		case 2: {
-			OAM_BUSY  = true;
-			VRAM_BUSY = false;
+			//OAM_BUSY  = true;
+			//VRAM_BUSY = false;
 			if (LY == LYC)
 			{
 				STAT = set_bit(STAT, 2); // set coincidence flag
@@ -188,8 +234,8 @@ u32 GBVideo::update()
 			break;
 		}
 		case 3:
-			OAM_BUSY  = false;
-			VRAM_BUSY = true;
+			//OAM_BUSY  = false;
+			//VRAM_BUSY = true;
 			draw();
 			// preserve bits 2-6, set mode 3
 			STAT = (STAT&0xFC) | 3;

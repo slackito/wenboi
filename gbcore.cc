@@ -188,14 +188,6 @@ GameBoy::run_status GameBoy::run_cycle()
 			memory.high[GBMemory::I_IF] = IF;
 		}
 
-		for(BreakpointMap::iterator i=breakpoints.begin();
-				i != breakpoints.end();
-				i++)
-		{
-			if (i->second.addr == regs.PC && i->second.enabled)
-				return BREAKPOINT;
-		}
-		
 		int opcode;
 		opcode = memory.read(regs.PC++);
 
@@ -1318,10 +1310,13 @@ GameBoy::run_status GameBoy::run_cycle()
 		}
 	}
 
-	// Video
-	if (video.cycles_until_next_update <= 0)
-		video.update();
-	video.cycles_until_next_update -= CYCLE_STEP;
+	// Update video, only if LCD is enabled
+	if (check_bit(memory.high[GBMemory::I_LCDC], 7))
+	{
+		if (video.cycles_until_next_update <= 0)
+			video.update();
+		video.cycles_until_next_update -= CYCLE_STEP;
+	}
 	
 	// Divider
 	divider_count++;
@@ -1362,7 +1357,18 @@ GameBoy::run_status GameBoy::run_cycle()
 
 	cycles_until_next_instruction -= CYCLE_STEP;
 	if (cycles_until_next_instruction > 0) return WAIT;
-	else return NORMAL;
+	else 
+	{
+		for(BreakpointMap::iterator i=breakpoints.begin();
+				i != breakpoints.end();
+				i++)
+		{
+			if (i->second.addr == regs.PC && i->second.enabled)
+				return BREAKPOINT;
+		}
+		
+		return NORMAL;
+	}
 }
 
 GameBoy::run_status GameBoy::run() 
@@ -1410,6 +1416,29 @@ std::string GameBoy::get_port_name(int port) const
 
 	switch (port)
 	{
+		case 0x04: port_name = "DIV "; break;
+		case 0x05: port_name = "TIMA"; break;
+		case 0x06: port_name = "TMA "; break;
+		case 0x07: port_name = "TAC "; break;
+		case 0x10: port_name = "CH1_ENT";          break;
+		case 0x11: port_name = "CH1_WAVE";         break;
+		case 0x12: port_name = "CH1_ENV";          break;
+		case 0x13: port_name = "CH1_FREQ_LO";      break;
+		case 0x14: port_name = "CH1_FREQ_HI_KICK"; break;
+		case 0x16: port_name = "CH2_WAVE";         break;
+		case 0x17: port_name = "CH2_ENV";          break;
+		case 0x18: port_name = "CH2_FREQ_LO";      break;
+		case 0x19: port_name = "CH2_FREQ_HI_KICK"; break;
+		case 0x1A: port_name = "CH3_ONOFF";        break;
+		case 0x1C: port_name = "CH3_VOLUME";       break;
+		case 0x1D: port_name = "CH3_FREQ_LO";      break;
+		case 0x1E: port_name = "CH3_FREQ_HI_KICK"; break;
+		case 0x21: port_name = "CH4_ENV";          break;
+		case 0x22: port_name = "CH4_POLY";         break;
+		case 0x23: port_name = "CH4_KICK";         break;
+		case 0x24: port_name = "SND_VIN";          break;
+		case 0x25: port_name = "SND_STEREO";       break;
+		case 0x26: port_name = "SND_STAT";         break;
 		case 0x40: port_name = "LCDC"; break;
 		case 0x41: port_name = "STAT"; break;
 		case 0x42: port_name = "SCY "; break; 
@@ -1425,9 +1454,11 @@ std::string GameBoy::get_port_name(int port) const
 		case 0x0F: port_name = "IF  "; break;
 		case 0xFF: port_name = "IE  "; break;
 		default:
-				   if (port >= 0x80 && port <= 0xFE) {
+				   if (port >= 0x80 && port <= 0xFE) 
 					   port_name = "HRAM";
-				   }
+				   else if (port >= 0x30 && port <= 0x3F)
+					   port_name = "Wave Pattern RAM";
+
 	}
 	return port_name;
 }
@@ -1450,6 +1481,11 @@ std::string GameBoy::status_string() const
 		" H = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.H) <<
 		" L = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.L) <<
 		"\tflags = " << int(regs.flags) << "\tZF = " << check_flag(ZERO_FLAG) << std::endl <<
+		"AF = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.AF) <<
+		" BC = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.BC) <<
+		" DE = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.DE) <<
+		" HL = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.HL) <<
+		"\tSP = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.SP) << std::endl <<
 		"IME = " << int(IME) << " IE = " << int(memory.read(0xFFFF)) << " IF = " << int(memory.read(0xFF0F));
 	return result.str();
 }
