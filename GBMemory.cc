@@ -5,9 +5,50 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
-	
-void GBMemory::write(u16 addr, u8 value)
+
+
+int GBMemory::set_watchpoint(u16 addr)
 {
+	watchpoints[++last_watchpoint_id] = Watchpoint(addr, true);
+	return last_watchpoint_id;
+}
+
+void GBMemory::delete_watchpoint(int id)
+{
+	watchpoints.erase(id);
+}
+
+void GBMemory::enable_watchpoint(int id)
+{
+	watchpoints[id].enabled = true;
+}
+
+void GBMemory::disable_watchpoint(int id)
+{
+	watchpoints[id].enabled = false;
+}
+
+void GBMemory::check_watchpoints(u16 addr, u16 value)
+{
+	for (WatchpointMap::iterator i = watchpoints.begin();
+			i != watchpoints.end(); i++)
+	{
+		if (i->second.enabled && addr == i->second.addr)
+		{
+			watchpoint_reached = true;
+			watchpoint_addr = addr;
+			watchpoint_oldvalue = read(addr, DONT_WATCH);
+			watchpoint_newvalue = value;
+			break;
+		}
+	}
+}
+	
+void GBMemory::write(u16 addr, u8 value, WatchpointControl watch)
+{
+	if (watch == WATCH)
+		check_watchpoints(addr, value);
+
 	if (addr < 0x8000)      mbc->write(addr, value);
 	else if (addr < 0xA000) core->video.write_VRAM(addr, value);
 	else if (addr < 0xC000) mbc->write(addr, value);
@@ -20,14 +61,12 @@ void GBMemory::write(u16 addr, u8 value)
 		{
 			high[I_DIV] = 0;
 		}
-		/*
 		else if (addr == DMA)
 		{
 			u16 dma_src = value << 8;
 			logger.warning("OAM DMA transfer from 0x", std::hex, std::setfill('0'), dma_src, " requested");
 			core->video.DMA_OAM(dma_src);
 		}
-		*/
 	}
 	else {
 		std::ostringstream errmsg;
@@ -39,8 +78,11 @@ void GBMemory::write(u16 addr, u8 value)
 }
 
 
-u8  GBMemory::read(u16 addr) const
+u8  GBMemory::read(u16 addr, WatchpointControl watch)
 {
+	if (watch == WATCH)
+		check_watchpoints(addr, 0xFFFF);
+
 	if (addr < 0x8000)      return mbc->read(addr);
 	else if (addr < 0xA000) return core->video.read_VRAM(addr);
 	else if (addr < 0xC000) return mbc->read(addr);
@@ -58,8 +100,11 @@ u8  GBMemory::read(u16 addr) const
 	}
 }
 
-u16 GBMemory::read16(u16 addr) const
+u16 GBMemory::read16(u16 addr, WatchpointControl watch)
 {
+	if (watch == WATCH)
+		check_watchpoints(addr, 0xFFFF);
+
 	if (addr < 0x8000)      return mbc->read16(addr);
 	else if (addr < 0xA000) return core->video.read16_VRAM(addr);
 	else if (addr < 0xC000) return mbc->read16(addr);

@@ -71,12 +71,12 @@ class GBVideo
 	void reset();
 
 	// VRAM/OAM access
-	inline u8   read_VRAM (int addr) const;
-	inline u8   read_OAM  (int addr) const;
-	inline u16  read16_VRAM (int addr) const;
-	inline u16  read16_OAM  (int addr) const;
-	inline void write_VRAM(int addr, u8 value);
-	inline void write_OAM (int addr, u8 value);
+	u8   read_VRAM (int addr) const;
+	u8   read_OAM  (int addr) const;
+	u16  read16_VRAM (int addr) const;
+	u16  read16_OAM  (int addr) const;
+	void write_VRAM(int addr, u8 value);
+	void write_OAM (int addr, u8 value);
 
 	// Write the whole OAM area via DMA
 	void DMA_OAM (const u16 src);

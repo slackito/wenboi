@@ -710,7 +710,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0xA6: //AND (HL)
 						regs.A &= memory.read(regs.HL);
-						if (regs.A == 0) set_flag(ZERO_FLAG);
+						set_flag_if(regs.A == 0, ZERO_FLAG); 
 						reset_flag(ADD_SUB_FLAG);
 						set_flag(HALF_CARRY_FLAG);
 						reset_flag(CARRY_FLAG);
@@ -719,7 +719,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0xE6: //AND inm
 						regs.A &= memory.read(regs.PC++);
-						if (regs.A == 0) set_flag(ZERO_FLAG);
+						set_flag_if(regs.A == 0, ZERO_FLAG); 
 						reset_flag(ADD_SUB_FLAG);
 						set_flag(HALF_CARRY_FLAG);
 						reset_flag(CARRY_FLAG);
@@ -731,7 +731,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0xB6: //OR (HL)
 						regs.A |= memory.read(regs.HL);
-						if (regs.A == 0) set_flag(ZERO_FLAG);
+						set_flag_if(regs.A == 0, ZERO_FLAG); 
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						reset_flag(CARRY_FLAG);
@@ -740,7 +740,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0xF6: //OR inm
 						regs.A |= memory.read(regs.PC++);
-						if (regs.A == 0) set_flag(ZERO_FLAG);
+						set_flag_if(regs.A == 0, ZERO_FLAG); 
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						reset_flag(CARRY_FLAG);
@@ -752,7 +752,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0xAE: //XOR (HL)
 						regs.A ^= memory.read(regs.HL);
-						if (regs.A == 0) set_flag(ZERO_FLAG);
+						set_flag_if(regs.A == 0, ZERO_FLAG); 
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						reset_flag(CARRY_FLAG);
@@ -761,7 +761,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0xEE: //XOR inm
 						regs.A ^= memory.read(regs.PC++);
-						if (regs.A == 0) set_flag(ZERO_FLAG);
+						set_flag_if(regs.A == 0, ZERO_FLAG); 
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						reset_flag(CARRY_FLAG);
@@ -1359,6 +1359,12 @@ GameBoy::run_status GameBoy::run_cycle()
 	if (cycles_until_next_instruction > 0) return WAIT;
 	else 
 	{
+		if (memory.watchpoint_reached)
+		{
+			memory.watchpoint_reached = false;
+			return WATCHPOINT;
+		}
+
 		for(BreakpointMap::iterator i=breakpoints.begin();
 				i != breakpoints.end();
 				i++)
@@ -1463,7 +1469,7 @@ std::string GameBoy::get_port_name(int port) const
 	return port_name;
 }
 
-std::string GameBoy::status_string() const
+std::string GameBoy::status_string()
 {
 	std::string disassembled_instruction;
 	int length;
@@ -1486,16 +1492,17 @@ std::string GameBoy::status_string() const
 		" DE = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.DE) <<
 		" HL = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.HL) <<
 		"\tSP = " << std::hex << std::setw(4) << std::setfill('0') << int(regs.SP) << std::endl <<
-		"IME = " << int(IME) << " IE = " << int(memory.read(0xFFFF)) << " IF = " << int(memory.read(0xFF0F));
+		"IME = " << int(IME) << " IE = " << int(memory.read(0xFFFF, GBMemory::DONT_WATCH)) << 
+		" IF = " << int(memory.read(0xFF0F, GBMemory::DONT_WATCH));
 	return result.str();
 }
 
 #include "disasm.h"
-void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length) const
+void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length)
 {
 	int opcode;
 	u16 PC = addr;
-	opcode = memory.read(PC++);
+	opcode = memory.read(PC++, GBMemory::DONT_WATCH);
 	std::ostringstream result;
 
 	result << std::hex << std::uppercase << std::setfill('0');
@@ -1546,7 +1553,7 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 
 		// LDH (n), A
 		case 0xE0: {
-			int port = int(memory.read(PC++));
+			int port = int(memory.read(PC++, GBMemory::DONT_WATCH));
 			
 			result << "LD (0xFF" << 
 					std::setw(2) << port << "), A" << "\t[" << get_port_name(port) << "]";
@@ -1554,7 +1561,7 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 		}
 		// LDH A, (n)
 		case 0xF0: {
-			int port = int(memory.read(PC++));
+			int port = int(memory.read(PC++, GBMemory::DONT_WATCH));
 			result << "LD A, (0xFF" << 
 					std::setw(2) << port << ")" << "\t[" << get_port_name(port) << "]";
 			break;
@@ -1571,7 +1578,7 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 		// LD HL, SP+n
 		// LDHL SP, n
 		case 0xF8: 
-			result << "LD HL, SP + 0x"<< std::setw(2) << int(memory.read(PC++));
+			result << "LD HL, SP + 0x"<< std::setw(2) << int(memory.read(PC++, GBMemory::DONT_WATCH));
 			break; 
 
 		// LD (nn), SP
@@ -1662,7 +1669,7 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 
 		// Miscellaneous instructions
 		case 0xCB: {
-			int sub_opcode = memory.read(PC++);
+			int sub_opcode = memory.read(PC++, GBMemory::DONT_WATCH);
 			switch(sub_opcode)
 			{
 				// SWAP n

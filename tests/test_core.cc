@@ -26,6 +26,34 @@ int str2int(string s)
 	return strtol(s.c_str(), NULL, 10);
 }
 
+void print_run_result(GameBoy &gb, int status)
+{
+	if (status == GameBoy::BREAKPOINT)
+	{
+		cout << "Breakpoint hit at " << gb.regs.PC << endl;
+		cout << gb.status_string() << endl;
+	}
+	else if (status == GameBoy::WATCHPOINT)
+	{
+		cout << "Watchpoint 0x" << std::hex << std::setw(4) << std::setfill('0') <<
+			int(gb.memory.watchpoint_addr) << " hit at 0x" << gb.regs.PC;
+		if (gb.memory.watchpoint_newvalue == 0xFFFF)
+		{
+			cout << " (READ)" << endl << 
+				"value = " << int(gb.memory.watchpoint_oldvalue) << endl;
+		}
+		else
+		{
+			cout << " (WRITE)" << endl <<
+				"old = " << int(gb.memory.watchpoint_oldvalue) << 
+				" new = " << int(gb.memory.watchpoint_newvalue) << endl;
+		}
+	}
+	//else
+	//{
+	//	cout << "run returned with status " << status << endl;
+	//}
+}
 
 int main(int argc, char **argv)
 {
@@ -75,8 +103,10 @@ int main(int argc, char **argv)
 
 		if (command == "step" || command == "s") 
 		{
-			while(gb.run_cycle() == GameBoy::WAIT) {} // do nothing
+			int status;
+			while((status = gb.run_cycle()) == GameBoy::WAIT) {} // do nothing
 			
+			print_run_result(gb, status);
 			cout << gb.status_string() << endl;
 		}
 		else if (command == "run" || command == "r" || command == "cont") 
@@ -92,15 +122,7 @@ int main(int argc, char **argv)
 				{
 					break;
 				}
-				else if (status == GameBoy::BREAKPOINT)
-				{
-					cout << "Breakpoint hit at " << gb.regs.PC << endl;
-					cout << gb.status_string() << endl;
-				}
-				else
-				{
-					cout << "run returned with status " << status << endl;
-				}
+				print_run_result(gb, status);
 			}
 			else if (arguments.size() == 1)
 			{
@@ -189,6 +211,24 @@ int main(int argc, char **argv)
 		else if (command == "disable")
 		{
 			gb.disable_breakpoint(str2int(arguments[0]));
+		}
+		else if (command == "watch" || command == "b")
+		{
+			int addr = str2int(arguments[0]);
+			cout << "watchpoint #" << gb.memory.set_watchpoint(addr) <<
+				" set at 0x" << std::hex << std::setw(4) << std::setfill('0') << addr << endl;
+		}
+		else if (command == "wdelete")
+		{
+			gb.memory.delete_watchpoint(str2int(arguments[0]));
+		}
+		else if (command == "wenable")
+		{
+			gb.memory.enable_watchpoint(str2int(arguments[0]));
+		}
+		else if (command == "wdisable")
+		{
+			gb.memory.disable_watchpoint(str2int(arguments[0]));
 		}
 		else if (command == "display")
 		{

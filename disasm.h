@@ -41,28 +41,28 @@
 #define dis_inm8(opcode, name) \
 	case opcode: \
 		result << name << " 0x" << std::setw(2) << \
-				int(memory.read(PC++)); \
+				int(memory.read(PC++, GBMemory::DONT_WATCH)); \
 		break;
 
 // OP inm16
 #define dis_inm16(opcode, name) \
 	case opcode: \
 		result << name << " 0x" << std::setw(4) << \
-				int(memory.read(PC)+(memory.read(PC+1) << 8)); \
+				int(memory.read16(PC, GBMemory::DONT_WATCH)); \
 		PC += 2; \
 		break;
 
 #define dis_reg_inm(opcode, name, reg) \
 	case opcode: \
 		result << name << " " << #reg << ", 0x" << std::setw(2) << \
-				int(memory.read(PC++)); \
+				int(memory.read(PC++, GBMemory::DONT_WATCH)); \
 		break;
 
 #define dis_reg16_inm(opcode, name, reg16) \
 	case opcode: \
 		result << name << " " << #reg16 << ", 0x" << \
 				std::setw(4) << \
-				int(memory.read(PC)+(memory.read(PC+1) << 8)); \
+				int(memory.read16(PC, GBMemory::DONT_WATCH)); \
 		PC += 2; \
 		break;
 
@@ -70,7 +70,7 @@
 	case opcode: \
 		result << name << " " << #reg16 << ", 0x" << \
 				std::setw(2) << \
-				int(memory.read(PC++)); \
+				int(memory.read(PC++, GBMemory::DONT_WATCH)); \
 		break;
 
 #define dis_reg_reg(opcode, name, reg1, reg2) \
@@ -107,7 +107,7 @@
 	case opcode: \
 		result << name << " " << #reg << ", (0x" << \
 				std::setw(4) << \
-				int(memory.read(PC) + (memory.read(PC+1)<<8)) << \
+				int(memory.read16(PC, GBMemory::DONT_WATCH)) << \
 				")"; \
 		PC += 2; \
 		break;
@@ -126,7 +126,7 @@
 	case opcode: \
 		result << name << " (0x" << \
 				std::setw(4) << \
-				int(memory.read(PC) + (memory.read(PC+1)<<8)) << \
+				int(memory.read16(PC, GBMemory::DONT_WATCH)) << \
 				"), " << #reg; \
 		PC += 2; \
 		break;
@@ -136,7 +136,7 @@
 	case opcode: \
 		result << name << " (0x" << \
 				std::setw(4) << \
-				int(memory.read(PC) + (memory.read(PC+1)<<8)) << \
+				int(memory.read16(PC, GBMemory::DONT_WATCH)) << \
 				"), " << #reg16; \
 		PC += 2; \
 		break;
@@ -146,7 +146,7 @@
 	case opcode: \
 		result << name << " (" << #reg16 << "), 0x" << \
 				std::setw(2) << \
-				int(memory.read(PC++)); \
+				int(memory.read(PC++, GBMemory::DONT_WATCH)); \
 		break;
 
 

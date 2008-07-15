@@ -130,7 +130,7 @@
 #define AND_reg(opcode, reg) \
 	case opcode: { \
 		regs.A &= regs.reg; \
-		if (regs.A == 0) set_flag(ZERO_FLAG); \
+		set_flag_if(regs.A == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		set_flag(HALF_CARRY_FLAG); \
 		reset_flag(CARRY_FLAG); \
@@ -141,7 +141,7 @@
 #define OR_reg(opcode, reg) \
 	case opcode: { \
 		regs.A |= regs.reg; \
-		if (regs.A == 0) set_flag(ZERO_FLAG); \
+		set_flag_if(regs.A == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		reset_flag(CARRY_FLAG); \
@@ -152,7 +152,7 @@
 #define XOR_reg(opcode, reg) \
 	case opcode: { \
 		regs.A ^= regs.reg; \
-		if (regs.A == 0) set_flag(ZERO_FLAG); \
+		set_flag_if(regs.A == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
 		reset_flag(CARRY_FLAG); \

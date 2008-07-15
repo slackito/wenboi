@@ -2,6 +2,7 @@
 #define GBMEMORY_H
 
 #include "sized_types.h"
+#include <map>
 
 class GameBoy;
 class MBC;
@@ -23,7 +24,37 @@ class GBMemory
 			// FEA0-FEFF: Not usable
 	u8 high[256];   // FF80-FFFE: High RAM
 
+	void check_watchpoints(u16 addr, u16 value);
+
+	// prevent copying
+	GBMemory (const GBMemory &other);
+	GBMemory operator= (const GBMemory &other);
+	
+	// debug things
+	struct Watchpoint {
+		int addr;
+		bool enabled;
+
+		Watchpoint(int a, bool e): addr(a), enabled(e) {}
+		Watchpoint(): addr(-1), enabled(false) {}
+	};
+
+	typedef std::map<int, Watchpoint> WatchpointMap;
+	
+	WatchpointMap watchpoints;
+	int last_watchpoint_id;
+
+
 	public:
+	int  set_watchpoint    (u16 addr);
+	void delete_watchpoint (int id);
+	void enable_watchpoint (int id);
+	void disable_watchpoint(int id);
+
+	bool watchpoint_reached;
+	u16  watchpoint_addr;
+	u8   watchpoint_oldvalue;
+	u16  watchpoint_newvalue;
 
 	static const u16 VRAM_BASE  = 0x8000;
 	static const u16 EXTERNAL_RAM_BASE = 0xA000;
@@ -32,13 +63,26 @@ class GBMemory
 	static const u16 IO_BASE    = 0xFF00;
 	static const u16 HRAM_BASE  = 0xFF80;
 
-	GBMemory(GameBoy *core): core(core), mbc(0), high() {}
+	GBMemory(GameBoy *core): core(core), mbc(0), high(),
+							watchpoints(),
+							last_watchpoint_id(0),
+							watchpoint_reached(false),
+							watchpoint_addr(0),
+							watchpoint_oldvalue(0),
+							watchpoint_newvalue(0)
+							{}
 	void init(MBC *mbc) { this->mbc = mbc; }
 
 
-	u8   read  (u16 addr) const;
-	u16  read16(u16 addr) const;
-	void write (u16 addr, u8 value);
+	enum WatchpointControl
+	{
+		WATCH=0,
+		DONT_WATCH=1,
+	};
+
+	u8   read  (u16 addr, WatchpointControl watch = WATCH);
+	u16  read16(u16 addr, WatchpointControl watch = WATCH);
+	void write (u16 addr, u8 value, WatchpointControl watch = WATCH);
 	
 	public:
 	static const u16 DIV  = 0xFF04; // Divider register     (R/W)
