@@ -16,8 +16,8 @@ GameBoy::GameBoy(std::string rom_name, GameBoyType type):
 	rom(0),
 	regs(),
 	IME(1),
-	HALT(0),
-	STOP(0),
+	HALT(false),
+	STOP(false),
 	cycle_count(0),
 	cycles_until_next_instruction(0),
 	divider_count(0),
@@ -131,7 +131,8 @@ void GameBoy::disable_breakpoint(int id)
 
 GameBoy::run_status GameBoy::run_cycle()
 {
-	cycle_count += CYCLE_STEP;
+
+	//if (HALT) logger.critical("(HALT) cycles_until_next_instruction = ", cycles_until_next_instruction);
 
 	if (cycles_until_next_instruction <= 0)
 	{
@@ -188,11 +189,11 @@ GameBoy::run_status GameBoy::run_cycle()
 			memory.high[GBMemory::I_IF] = IF;
 		}
 
-		int opcode;
-		opcode = memory.read(regs.PC++);
-
 		if (!(HALT || STOP))
 		{
+			int opcode;
+			opcode = memory.read(regs.PC++);
+
 			switch(opcode & 0x80)
 			{
 				case 0x00:
@@ -471,11 +472,13 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					
 					// JR n
-					case 0x18:
+					case 0x18: {
 						// -1 because PC is now pointing past the opcode
-						regs.PC += static_cast<s8>(memory.read(regs.PC++));
+						s8 offset = static_cast<s8>(memory.read(regs.PC++));
+						regs.PC += offset;
 						cycles_until_next_instruction = 8; 
 						break;
+					}
 
 					// JR cc, n
 					case 0x20: { // JR NZ, n
@@ -1355,7 +1358,14 @@ GameBoy::run_status GameBoy::run_cycle()
 	}	
 
 
-	cycles_until_next_instruction -= CYCLE_STEP;
+	if (HALT)
+		cycles_until_next_instruction = 0;
+	else
+	{
+		cycle_count += CYCLE_STEP;
+		cycles_until_next_instruction -= CYCLE_STEP;
+	}
+
 	if (cycles_until_next_instruction > 0) return WAIT;
 	else 
 	{
@@ -1538,9 +1548,9 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 		dis__inm__reg(0xEA, "LD", A)
 
 		// LD A, (C)
-		dis(0xF2, "LD A, (C)")
+		dis(0xF2, "LD A, (0xFF00+C)")
 		// LD (C), A
-		dis(0xE2, "LD (C), A")
+		dis(0xE2, "LD (0xFF00+C), A")
 
 		// LD A, (HLD); LD A, (HL-); LDD A,(HL);
 		dis(0x3A, "LD A, (HL-)")
