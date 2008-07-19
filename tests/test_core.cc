@@ -84,6 +84,7 @@ int main(int argc, char **argv)
 		else
 		{
 			cout << "(wenboi) ";
+			cout.flush();
 			std::getline(cin, line, '\n');
 			if (!cin.good()) break; // if stdin is closed, exit main loop
 			if (line == "") command = last_command;
@@ -234,6 +235,10 @@ int main(int argc, char **argv)
 		{
 			if (arguments[0] == "bgmap")
 				gb.video.set_display_mode(GBVideo::BG_MAP);
+			else if (arguments[0] == "wmap")
+				gb.video.set_display_mode(GBVideo::WINDOW_MAP);
+			else if (arguments[0] == "smap")
+				gb.video.set_display_mode(GBVideo::SPRITE_MAP);
 			else
 				gb.video.set_display_mode(GBVideo::NORMAL);
 		}

@@ -55,6 +55,7 @@ class GBVideo
 		NORMAL = 0,
 		BG_MAP,
 		WINDOW_MAP,
+		SPRITE_MAP,
 	};
 
 	private:

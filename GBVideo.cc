@@ -394,6 +394,18 @@ void GBVideo::draw()
 				int sprite_x = screen_x - (v[i].x-8);
 				int sprite_y = LY - v[i].y;
 				int current_tile_index = v[i].tile;
+				if (sprite_height == 16)
+				{
+					if (sprite_y < 8)
+					{
+						current_tile_index &= 0xFE;
+					}
+					else
+					{
+						current_tile_index |= 1;
+						sprite_y -= 8;
+					}
+				}
 				int pal_num = (v[i].flags & Sprite::NON_CGB_PAL_NUMBER) >> 4;
 				for (int x=sprite_x; x < 8; x++)
 				{
@@ -457,6 +469,84 @@ void GBVideo::draw()
 							u8 current_row_low = VRAM[current_tile_addr+2*y];
 							u8 current_row_high = VRAM[current_tile_addr+2*y+1];
 							u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 | 
+										((current_row_low >> tile_x)&1)]];
+							pixels[320*(ty+y)+(tx+x)] = color;
+						}
+					}
+				}
+			}
+		}
+	}
+	else if (display_mode == WINDOW_MAP)
+	{
+		if (LY==0)
+		{
+			u32 *pixels = static_cast<u32*>(display->pixels);
+			int BGP  = core->memory.high[GBMemory::I_BGP];
+			int pallette[4];
+			pallette[0] = BGP & 3;
+			pallette[1] = (BGP>>2) & 3;
+			pallette[2] = (BGP>>4) & 3;
+			pallette[3] = (BGP>>6) & 3;
+			u16 tile_map_addr  = check_bit(LCDC,6) ? 0x1C00  : 0x1800;
+			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
+			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+			for (int row=0; row < 32; row++)
+			{
+				logger.trace("bgmap row=", row);
+				for (int col=0; col < 32; col++)
+				{
+					int ty = row*8;
+					int tx = col*8;
+					for (int y=0; y<8; y++)
+					{
+						for (int x=0; x<8; x++)
+						{
+							u8 tile_x = 7-x;
+							u8 current_tile_index = VRAM[tile_map_addr+32*row + col] + tile_data_base;
+							u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+							u8 current_row_low = VRAM[current_tile_addr+2*y];
+							u8 current_row_high = VRAM[current_tile_addr+2*y+1];
+							u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 |
+										((current_row_low >> tile_x)&1)]];
+							pixels[320*(ty+y)+(tx+x)] = color;
+						}
+					}
+				}
+			}
+		}
+	}
+	else if (display_mode == SPRITE_MAP)
+	{
+		if (LY==0)
+		{
+			u32 *pixels = static_cast<u32*>(display->pixels);
+			int BGP  = core->memory.high[GBMemory::I_BGP];
+			int pallette[4];
+			pallette[0] = BGP & 3;
+			pallette[1] = (BGP>>2) & 3;
+			pallette[2] = (BGP>>4) & 3;
+			pallette[3] = (BGP>>6) & 3;
+			u16 tile_map_addr  = check_bit(LCDC,6) ? 0x1C00  : 0x1800;
+			u16 tile_data_addr = 0x0000;
+			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+			for (int row=0; row < 32; row++)
+			{
+				logger.trace("bgmap row=", row);
+				for (int col=0; col < 32; col++)
+				{
+					int ty = row*8;
+					int tx = col*8;
+					for (int y=0; y<8; y++)
+					{
+						for (int x=0; x<8; x++)
+						{
+							u8 tile_x = 7-x;
+							u8 current_tile_index = VRAM[tile_map_addr+32*row + col] + tile_data_base;
+							u16 current_tile_addr = tile_data_addr + 16*current_tile_index;
+							u8 current_row_low = VRAM[current_tile_addr+2*y];
+							u8 current_row_high = VRAM[current_tile_addr+2*y+1];
+							u32 color = colors[pallette[((current_row_high >> tile_x)&1) << 1 |
 										((current_row_low >> tile_x)&1)]];
 							pixels[320*(ty+y)+(tx+x)] = color;
 						}
