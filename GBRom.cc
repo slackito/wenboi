@@ -83,6 +83,7 @@ GBRom *read_gbrom(std::string filename)
 
 #include <cstdlib>
 
+extern "C"
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {

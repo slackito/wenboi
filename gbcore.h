@@ -109,8 +109,6 @@ class GameBoy
 	run_status run();
 
 	// debug methods
-	void disassemble_opcode(u16 addr, std::string &instruction, int &length);
-	
 	int  set_breakpoint    (u16 addr);
 	void delete_breakpoint (int id);
 	void enable_breakpoint (int id);

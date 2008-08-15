@@ -1,3 +1,6 @@
+#include <iomanip>
+
+#include "../Logger.h"
 #include "disasm.h"
 #include "disasm_macros.h"
 
@@ -55,12 +58,11 @@ std::string get_port_name(int port)
 }
 
 
-void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &length)
+Instruction disassemble_opcode(GameBoy &gb, u16 addr)
 {
-	int opcode;
+	u8 opcode, sub_opcode=0xFF;
 	std::ostringstream result;
-	std::string              opcode_str, op1_str, op2_str;
-	Instruction::OperandType op1_type, op2_type;
+	std::string              opcode_str;
 	Instruction::Operand     op1, op2;
 
 	u16 PC = addr;
@@ -99,18 +101,73 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 		dis__inm__reg(0xEA, "LD", A)
 
 		// LD A, (C)
-		dis(0xF2, "LD A, (0xFF00+C)")
+		case 0xF2:
+			result << "LD A, (0xFF00+C)";
+			opcode_str = "LDH";
+			op1.str="A";
+			op2.str="C";
+			op1.type=Instruction::REG;
+			op1.reg =Instruction::A;
+			op2.type=Instruction::MEM_INDIRECT;
+			op2.reg =Instruction::C;
+			break;
+
 		// LD (C), A
-		dis(0xE2, "LD (0xFF00+C), A")
+		case 0xE2:
+			result << "LD (0xFF00+C), A";
+			opcode_str = "LDH";
+			op1.str="C";
+			op2.str="A";
+			op1.type=Instruction::MEM_INDIRECT;
+			op1.reg =Instruction::C;
+			op2.type=Instruction::REG;
+			op2.reg =Instruction::A;
+			break;
 
 		// LD A, (HLD); LD A, (HL-); LDD A,(HL);
-		dis(0x3A, "LDD A, (HL)")
+		case 0x3A:
+			result << "LD A, (HL-)";
+			opcode_str = "LDD";
+			op1.str="A";
+			op2.str="(HL)";
+			op1.type=Instruction::REG;
+			op1.reg =Instruction::A;
+			op2.type=Instruction::MEM_INDIRECT;
+			op2.reg =Instruction::HL;
+			break;
 		// LD (HLD), A; LD (HL-), A; LDD (HL), A;
-		dis(0x32, "LDD (HL), A")
+		case 0x32:
+			result << "LD (HL-), A";
+			opcode_str = "LDD";
+			op1.str="(HL)";
+			op2.str="A";
+			op1.type=Instruction::MEM_INDIRECT;
+			op1.reg =Instruction::HL;
+			op2.type=Instruction::REG;
+			op2.reg =Instruction::A;
+			break;
 		// LD A, (HLI); LD A, (HL+); LDI A, (HL);
-		dis(0x2A, "LDI A, (HL)")
+		case 0x2A:
+			result << "LD A, (HL+)";
+			opcode_str = "LDI";
+			op1.str="A";
+			op2.str="(HL)";
+			op1.type=Instruction::REG;
+			op1.reg =Instruction::A;
+			op2.type=Instruction::MEM_INDIRECT;
+			op2.reg =Instruction::HL;
+			break;
 		// LD (HLI), A; LD (HL+), A; LDI (HL), A;
-		dis(0x22, "LDI (HL), A")
+		case 0x22:
+			result << "LD (HL+), A";
+			opcode_str = "LDI";
+			op1.str="(HL)";
+			op2.str="A";
+			op1.type=Instruction::MEM_INDIRECT;
+			op1.reg =Instruction::HL;
+			op2.type=Instruction::REG;
+			op2.reg =Instruction::A;
+			break;
 
 		// LDH (n), A
 		case 0xE0: {
@@ -118,6 +175,13 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 			
 			result << "LD (0xFF" << 
 					std::setw(2) << port << "), A" << "\t[" << get_port_name(port) << "]";
+			opcode_str = "LDH";
+			op1.str=std::string("(") + ToString(port) + ")";
+			op2.str="A";
+			op1.type=Instruction::MEM_DIRECT;
+			op1.val =0xFF00+port;
+			op2.type=Instruction::REG;
+			op2.reg =Instruction::A;
 			break;
 		}
 		// LDH A, (n)
@@ -125,6 +189,13 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 			int port = int(gb.memory.read(PC++, GBMemory::DONT_WATCH));
 			result << "LD A, (0xFF" << 
 					std::setw(2) << port << ")" << "\t[" << get_port_name(port) << "]";
+			opcode_str = "LDH";
+			op1.str="A";
+			op2.str=std::string("(") + ToString(port) + ")";
+			op1.type=Instruction::REG;
+			op1.reg =Instruction::A;
+			op2.type=Instruction::MEM_DIRECT;
+			op2.val =0xFF00+port;
 			break;
 		}
 
@@ -134,13 +205,28 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 		dis_reg16_inm(0x31, "LD", SP)
 		
 		// LD SP, HL
-		dis(0xF9, "LD SP, HL")
+		case 0xF9:
+			result << "LD SP, HL";
+			opcode_str = "LD";
+			op1.str = "SP";
+			op2.str = "HL";
+			op1.type = Instruction::REG;
+			op1.reg  = Instruction::SP;
+			op2.type = Instruction::REG;
+			op2.reg  = Instruction::HL;
 
 		// LD HL, SP+n
 		// LDHL SP, n
-		case 0xF8: 
-			result << "LD HL, SP + 0x"<< std::setw(2) << int(gb.memory.read(PC++, GBMemory::DONT_WATCH));
+		case 0xF8: {
+			int n = int(gb.memory.read(PC++, GBMemory::DONT_WATCH));
+			result << "LD HL, SP + 0x"<< std::setw(2) << n;
+			opcode_str = "LD HL, SP+";
+			op1.str = ToString(n);
+			op2.str = "";
+			op1.type = Instruction::INM8;
+			op1.val = n;
 			break; 
+		}
 
 		// LD (nn), SP
 		dis__inm__reg16(0x08, "LD", SP)
@@ -230,7 +316,7 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 
 		// Miscellaneous instructions
 		case 0xCB: {
-			int sub_opcode = gb.memory.read(PC++, GBMemory::DONT_WATCH);
+			sub_opcode = gb.memory.read(PC++, GBMemory::DONT_WATCH);
 			switch(sub_opcode)
 			{
 				// SWAP n
@@ -320,8 +406,6 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 
 		dis(0x1F, "RRA")
 		
-		// TODO: Bit instructions
-		
 		// Jumps
 		dis_inm16(0xC3, "JP")
 		// JP cc, nn
@@ -329,7 +413,15 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 		dis_inm16(0xCA, "JP Z")
 		dis_inm16(0xD2, "JP NC")
 		dis_inm16(0xDA, "JP C")
-		dis(0xE9, "JP (HL)")
+		case 0xE9:
+			result << "JP (HL)";
+			opcode_str = "JP";
+			op1.str="(HL)";
+			op2.str="";
+			op1.type = Instruction::MEM_INDIRECT;
+			op1.reg = Instruction::HL;
+			op2.type = Instruction::NONE;
+			break;
 		
 		dis_JR(0x18, "JR")
 		dis_JR(0x20, "JR NZ")
@@ -374,8 +466,7 @@ void disassemble_opcode(GameBoy &gb, u16 addr, std::string &instruction, int &le
 			break;
 
 	} // end switch
-	
-	instruction = result.str();
-	length = PC - addr;
+
+	return Instruction(PC-addr, opcode, sub_opcode, result.str(), opcode_str, op1, op2);
 }
 

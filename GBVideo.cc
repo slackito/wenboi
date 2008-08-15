@@ -53,6 +53,7 @@ void GBVideo::reset()
 
 void GBVideo::DMA_OAM (const u16 src)
 {
+	logger.trace("DMA OAM from 0x",std::hex,src);
 	for (u16 i=0; i<160; i++)
 	{
 		OAM.raw[i] = core->memory.read(src+i);
@@ -378,6 +379,7 @@ void GBVideo::draw()
 			for (int i=0; i<40; i++)
 			{
 				int y_orig = OAM.sprites[i].y - 16;
+				//logger.trace("sprite #", i, "y_orig = ", y_orig);
 				if (LY >= y_orig && LY < y_orig+sprite_height)
 					v.push_back(OAM.sprites[i]);
 			}
@@ -385,6 +387,7 @@ void GBVideo::draw()
 			// sort sprites
 			std::stable_sort(v.begin(), v.end());
 
+			//logger.trace("LY=",LY," sprites=",v.size());
 			// draw sprites
 			u16 tile_data_addr = 0x0000;
 			int cur_x = 0;
@@ -493,7 +496,7 @@ void GBVideo::draw()
 			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
 			for (int row=0; row < 32; row++)
 			{
-				logger.trace("bgmap row=", row);
+				logger.trace("window map row=", row);
 				for (int col=0; col < 32; col++)
 				{
 					int ty = row*8;
@@ -529,7 +532,7 @@ void GBVideo::draw()
 			pallette[3] = (BGP>>6) & 3;
 			u16 tile_map_addr  = check_bit(LCDC,6) ? 0x1C00  : 0x1800;
 			u16 tile_data_addr = 0x0000;
-			int tile_data_base = (tile_data_addr == 0x0800) ? -128 : 0;
+			int tile_data_base = 0;
 			for (int row=0; row < 32; row++)
 			{
 				logger.trace("bgmap row=", row);

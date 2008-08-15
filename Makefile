@@ -25,7 +25,7 @@ NoMBC.o: NoMBC.cc NoMBC.h Logger.h
 MBC1.o: MBC1.cc MBC1.h Logger.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 
-gbcore.o: gbcore.cc gbcore.h opcodes.h disasm.h \
+gbcore.o: gbcore.cc gbcore.h opcodes.h \
 	GBRom.h Logger.h MBC.h GBMemory.h GBVideo.h util.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 		
@@ -39,8 +39,11 @@ tests/test_core: tests/test_core.cc gbcore.o MBC.o GBMemory.o GBRom.o \
 wendi/CodeBlock.o: wendi/CodeBlock.cc wendi/CodeBlock.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 
-wendi/wendi: wendi/wendi.cc wendi/CodeBlock.o gbcore.o MBC.o GBMemory.o GBRom.o \
-	GBVideo.o util.o NoMBC.o MBC1.o
+wendi/disasm.o: wendi/disasm.cc wendi/disasm.h
+	g++ $(CXXFLAGS) -c -o $@ $<
+
+wendi/wendi: wendi/wendi.cc wendi/CodeBlock.o wendi/disasm.o gbcore.o MBC.o \
+	GBMemory.o GBRom.o GBVideo.o util.o NoMBC.o MBC1.o
 	g++ $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:

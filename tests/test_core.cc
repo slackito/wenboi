@@ -139,6 +139,7 @@ int main(int argc, char **argv)
 		{
 			break;
 		}
+		/*
 		else if (command == "disasm" || command == "d")
 		{
 			int start, end, pos;
@@ -176,6 +177,7 @@ int main(int argc, char **argv)
 			}
 
 		}
+		*/
 		else if (command == "x")
 		{
 			int addr = str2int(arguments[0]);
