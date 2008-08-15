@@ -117,7 +117,6 @@ class GameBoy
 	void disable_breakpoint(int id);
 
 	std::string status_string();
-	std::string get_port_name(int port) const;
 
 	// prevent object copying
 	private:

@@ -1426,59 +1426,6 @@ GameBoy::run_status GameBoy::run()
 	return status;
 }
 
-std::string GameBoy::get_port_name(int port) const
-{
-	std::string port_name;
-
-	switch (port)
-	{
-		case 0x04: port_name = "DIV "; break;
-		case 0x05: port_name = "TIMA"; break;
-		case 0x06: port_name = "TMA "; break;
-		case 0x07: port_name = "TAC "; break;
-		case 0x10: port_name = "CH1_ENT";          break;
-		case 0x11: port_name = "CH1_WAVE";         break;
-		case 0x12: port_name = "CH1_ENV";          break;
-		case 0x13: port_name = "CH1_FREQ_LO";      break;
-		case 0x14: port_name = "CH1_FREQ_HI_KICK"; break;
-		case 0x16: port_name = "CH2_WAVE";         break;
-		case 0x17: port_name = "CH2_ENV";          break;
-		case 0x18: port_name = "CH2_FREQ_LO";      break;
-		case 0x19: port_name = "CH2_FREQ_HI_KICK"; break;
-		case 0x1A: port_name = "CH3_ONOFF";        break;
-		case 0x1C: port_name = "CH3_VOLUME";       break;
-		case 0x1D: port_name = "CH3_FREQ_LO";      break;
-		case 0x1E: port_name = "CH3_FREQ_HI_KICK"; break;
-		case 0x21: port_name = "CH4_ENV";          break;
-		case 0x22: port_name = "CH4_POLY";         break;
-		case 0x23: port_name = "CH4_KICK";         break;
-		case 0x24: port_name = "SND_VIN";          break;
-		case 0x25: port_name = "SND_STEREO";       break;
-		case 0x26: port_name = "SND_STAT";         break;
-		case 0x40: port_name = "LCDC"; break;
-		case 0x41: port_name = "STAT"; break;
-		case 0x42: port_name = "SCY "; break; 
-		case 0x43: port_name = "SCX "; break; 
-		case 0x44: port_name = "LY  "; break; 
-		case 0x45: port_name = "LYC "; break; 
-		case 0x4A: port_name = "WY  "; break; 
-		case 0x4B: port_name = "WX  "; break; 
-		case 0x47: port_name = "BGP "; break; 
-		case 0x48: port_name = "OBP0"; break; 
-		case 0x49: port_name = "OBP1"; break; 
-		case 0x46: port_name = "DMA "; break;
-		case 0x0F: port_name = "IF  "; break;
-		case 0xFF: port_name = "IE  "; break;
-		default:
-				   if (port >= 0x80 && port <= 0xFE) 
-					   port_name = "HRAM";
-				   else if (port >= 0x30 && port <= 0x3F)
-					   port_name = "Wave Pattern RAM";
-
-	}
-	return port_name;
-}
-
 std::string GameBoy::status_string()
 {
 	std::string disassembled_instruction;
@@ -1553,13 +1500,13 @@ void GameBoy::disassemble_opcode(u16 addr, std::string &instruction, int &length
 		dis(0xE2, "LD (0xFF00+C), A")
 
 		// LD A, (HLD); LD A, (HL-); LDD A,(HL);
-		dis(0x3A, "LD A, (HL-)")
+		dis(0x3A, "LDD A, (HL)")
 		// LD (HLD), A; LD (HL-), A; LDD (HL), A;
-		dis(0x32, "LD (HL-), A")
+		dis(0x32, "LDD (HL), A")
 		// LD A, (HLI); LD A, (HL+); LDI A, (HL);
-		dis(0x2A, "LD A, (HL+)")
+		dis(0x2A, "LDI A, (HL)")
 		// LD (HLI), A; LD (HL+), A; LDI (HL), A;
-		dis(0x22, "LD (HL+), A")
+		dis(0x22, "LDI (HL), A")
 
 		// LDH (n), A
 		case 0xE0: {

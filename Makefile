@@ -5,7 +5,7 @@ LDFLAGS=-pg -g $(shell sdl-config --libs)
 
 all: tests
 
-tests: tests/test_gbrom tests/test_core
+tests: tests/test_gbrom tests/test_core wendi/wendi
 
 util.o: util.cc util.h
 	g++ $(CXXFLAGS) -c -o $@ $<
@@ -33,6 +33,13 @@ tests/test_gbrom: GBRom.cc GBRom.h
 	g++ $(CXXFLAGS)  -DTEST_GBROM -o $@ GBRom.cc $(LDFLAGS)
 
 tests/test_core: tests/test_core.cc gbcore.o MBC.o GBMemory.o GBRom.o \
+	GBVideo.o util.o NoMBC.o MBC1.o
+	g++ $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+wendi/CodeBlock.o: wendi/CodeBlock.cc wendi/CodeBlock.h
+	g++ $(CXXFLAGS) -c -o $@ $<
+
+wendi/wendi: wendi/wendi.cc wendi/CodeBlock.o gbcore.o MBC.o GBMemory.o GBRom.o \
 	GBVideo.o util.o NoMBC.o MBC1.o
 	g++ $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
