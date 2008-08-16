@@ -2,6 +2,7 @@
 #define DISASM_H
 
 #include "../gbcore.h"
+#include "Instruction.h"
 
 #include <string>
 #include <sstream>

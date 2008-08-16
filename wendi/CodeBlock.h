@@ -5,27 +5,16 @@
 #include <utility>
 #include <string>
 #include <list>
+#include "Instruction.h"
 #include "../sized_types.h"
 
 typedef u16 address;
-
-enum JumpType
-{
-	JP,
-	JP_CC,
-	JR,
-	CALL,
-	CALL_CC,
-	RET,
-	RETI,
-	RST,
-};
 
 class CodeBlock
 {
 	public:
 	typedef std::pair<address, std::string> DisassemblyItem;
-	typedef std::pair<address, JumpType>    XrefsItem;
+	typedef std::pair<address, Instruction::InstructionType> XrefsItem;
 	typedef std::list<DisassemblyItem>      DisassemblyList;
 	typedef std::vector<XrefsItem>          XrefsVector;
 	
@@ -44,7 +33,9 @@ class CodeBlock
 
 	int length() { return end-start; }
 	void add_instruction(std::string ins, int nbytes); // appends an instruction to the end of the block
-	void add_xref(address addr, JumpType jt);
+	void add_xref(address addr, Instruction::InstructionType jt);
+
+	bool operator< (const CodeBlock& other) const { return start < other.start; }
 };
 
 

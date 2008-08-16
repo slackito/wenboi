@@ -8,7 +8,6 @@
 
 using std::ifstream;
 using std::ios;
-using std::cout;
 using std::endl;
 
 void log_rom_header(GBRom *rom, Logger::log_level level)
@@ -62,7 +61,7 @@ GBRom *read_gbrom(std::string filename)
 
 	is.seekg(0,ios::end);
 	int length = is.tellg();
-	cout << "Loading " << filename << " (length=" << length << ")" << endl;
+	logger.info("Loading ",filename," (length=",length,")");
 	is.seekg(0,ios::beg);
 
 	void *buffer = ::operator new(length);

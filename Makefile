@@ -1,5 +1,5 @@
 #CXXFLAGS=-pg -O3 -g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast
-CXXFLAGS=-pg -O3 -g -Wall -Weffc++ -Wold-style-cast \
+CXXFLAGS=-pg -g -Wall -Weffc++ -Wold-style-cast \
 	 -Woverloaded-virtual $(shell sdl-config --cflags)
 LDFLAGS=-pg -g $(shell sdl-config --libs)
 
@@ -39,7 +39,7 @@ tests/test_core: tests/test_core.cc gbcore.o MBC.o GBMemory.o GBRom.o \
 wendi/CodeBlock.o: wendi/CodeBlock.cc wendi/CodeBlock.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 
-wendi/disasm.o: wendi/disasm.cc wendi/disasm.h
+wendi/disasm.o: wendi/disasm.cc wendi/disasm.h wendi/Instruction.h
 	g++ $(CXXFLAGS) -c -o $@ $<
 
 wendi/wendi: wendi/wendi.cc wendi/CodeBlock.o wendi/disasm.o gbcore.o MBC.o \

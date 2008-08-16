@@ -37,7 +37,7 @@ void CodeBlock::add_instruction(std::string ins, int nbytes) // appends an instr
 	end += nbytes;
 }
 
-void CodeBlock::add_xref(address addr, JumpType jt)
+void CodeBlock::add_xref(address addr, Instruction::InstructionType jt)
 {
 	xrefs.push_back(std::make_pair(addr, jt));
 }
