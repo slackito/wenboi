@@ -89,7 +89,8 @@ void show_block(const CodeBlock& b)
 bool is_block_end(const Instruction &ins)
 {
 	if (ins.type == Instruction::UNCONDITIONAL_JUMP || 
-			ins.type == Instruction::RET)
+			ins.type == Instruction::RET ||
+			ins.type == Instruction::RESET)
 		return true;
 
 	return false;
@@ -113,7 +114,8 @@ address jump_address(const Instruction &ins)
 	{
 		if (ins.str.substr(0,2)=="JR")
 			return ins.op2.val;
-		else return ins.op1.val;
+		else if (ins.op1.type == Instruction::INM16)
+			return ins.op1.val;
 	}
 	else // RESET
 	{

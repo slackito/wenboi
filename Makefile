@@ -47,6 +47,6 @@ wendi/wendi: wendi/wendi.cc wendi/CodeBlock.o wendi/disasm.o gbcore.o MBC.o \
 	g++ $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
-	rm -f *.o tests/test_gbrom tests/test_core
+	rm -f *.o wendi/*.o wendi/wendi tests/test_gbrom tests/test_core
 
 .PHONY: clean tests all

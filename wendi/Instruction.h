@@ -17,6 +17,12 @@ struct Instruction
 		OTHER
 	};
 
+	enum InstructionSubType
+	{
+		JP,
+		JR,
+	}
+
 	enum Register { A=0,B,C,D,E,H,L,AF,BC,DE,HL,SP,PC };
 
 	enum OperandType
