@@ -9,19 +9,21 @@ struct Instruction
 	{
 		UNCONDITIONAL_JUMP=0,
 		CONDITIONAL_JUMP,
+		UNCONDITIONAL_RET,
+		CONDITIONAL_RET,
 		CALL,
-		RET,
 		RESET,
 		ALU,
 		LOAD,
-		OTHER
+		OTHER,
+		JUMP_TABLE_JUMP,
 	};
 
 	enum InstructionSubType
 	{
 		JP,
 		JR,
-	}
+	};
 
 	enum Register { A=0,B,C,D,E,H,L,AF,BC,DE,HL,SP,PC };
 

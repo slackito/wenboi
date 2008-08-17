@@ -4,17 +4,21 @@
 #include <ext/functional>
 
 CodeBlock::CodeBlock(address start): //< creates an empty CodeBlock 
+	type(BLOCK),
 	start(start),
 	end(start),
 	disassembly(),
-	xrefs()
+	xrefs(),
+	name()
 {}
 
 CodeBlock::CodeBlock(CodeBlock &block, address addr): //< removes [addr,end[ from the block creating a new one
+	type(BLOCK),
 	start(addr),
 	end(block.end),
 	disassembly(),
-	xrefs()
+	xrefs(),
+	name()
 {
 	using std::bind2nd;
 	using __gnu_cxx::select1st;
@@ -30,6 +34,15 @@ CodeBlock::CodeBlock(CodeBlock &block, address addr): //< removes [addr,end[ fro
 	disassembly.splice(disassembly.end(), block.disassembly, first, last);
 }
 
+CodeBlock::CodeBlock(CodeBlockType type, address start, address end):
+	type(type),
+	start(start),
+	end(end),
+	disassembly(),
+	xrefs(),
+	name()
+{
+}
 
 void CodeBlock::add_instruction(std::string ins, int nbytes) // appends an instruction to the end of the block
 {

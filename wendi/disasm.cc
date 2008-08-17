@@ -503,14 +503,14 @@ Instruction disassemble_opcode(GameBoy &gb, u16 addr)
 		dis(0xFF, "RST 0x38", Instruction::RESET)
 
 		// Returns
-		dis(0xC9, "RET", Instruction::RET)
+		dis(0xC9, "RET", Instruction::UNCONDITIONAL_RET)
 		// RET cc
-		dis(0xC0, "RET NZ", Instruction::RET)
-		dis(0xC8, "RET Z",  Instruction::RET)
-		dis(0xD0, "RET NC", Instruction::RET)
-		dis(0xD8, "RET C",  Instruction::RET)
+		dis(0xC0, "RET NZ", Instruction::CONDITIONAL_RET)
+		dis(0xC8, "RET Z",  Instruction::CONDITIONAL_RET)
+		dis(0xD0, "RET NC", Instruction::CONDITIONAL_RET)
+		dis(0xD8, "RET C",  Instruction::CONDITIONAL_RET)
 
-		dis(0xD9, "RETI", Instruction::RET)
+		dis(0xD9, "RETI", Instruction::UNCONDITIONAL_RET)
 
 		default:
 			std::ostringstream errmsg;
