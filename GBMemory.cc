@@ -64,7 +64,7 @@ void GBMemory::write(u16 addr, u8 value, WatchpointControl watch)
 		else if (addr == DMA)
 		{
 			u16 dma_src = value << 8;
-			logger.warning("OAM DMA transfer from 0x", std::hex, std::setfill('0'), dma_src, " requested");
+			//logger.warning("OAM DMA transfer from 0x", std::hex, std::setfill('0'), dma_src, " requested");
 			core->video.DMA_OAM(dma_src);
 		}
 	}

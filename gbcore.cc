@@ -553,13 +553,13 @@ GameBoy::run_status GameBoy::run_cycle()
 						break;
 					// LDH (n), A
 					case 0xE0: {
-						memory.high[memory.read(regs.PC++)] =  regs.A;
+						memory.write(0xFF00+memory.read(regs.PC++), regs.A);
 						cycles_until_next_instruction = 12; 
 						break;
 					}
 					// LDH A, (n)
 					case 0xF0:
-						regs.A = memory.high[memory.read(regs.PC++)];
+						regs.A = memory.read(0xFF00+memory.read(regs.PC++));
 						cycles_until_next_instruction = 12; 
 						break;
 
