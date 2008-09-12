@@ -821,7 +821,7 @@ GameBoy::run_status GameBoy::run_cycle()
 						// FIXME: No se que hacer con el half carry, en 4 o en 11?
 						int n = static_cast<s8>(memory.read(regs.PC++));
 						int res = regs.SP + n;
-						regs.SP = static_cast<u8>(res);
+						regs.SP = static_cast<u16>(res);
 						reset_flag(ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
 						set_flag_if(res > 0xFFFF, CARRY_FLAG);
