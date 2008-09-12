@@ -694,8 +694,9 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0x9E: {//SBC (HL)
 						int carry = (check_flag(CARRY_FLAG)? 1 : 0);
-						int res = regs.A - memory.read(regs.HL) - carry;
-						int half_res = (regs.A & 0x0F) - (memory.read(regs.HL) & 0x0F) - carry;
+						int val = memory.read(regs.HL);
+						int res = regs.A - val - carry;
+						int half_res = (regs.A & 0x0F) - (val & 0x0F) - carry;
 						regs.A = static_cast<u8>(res);
 
 						set_flag(ADD_SUB_FLAG);
@@ -706,7 +707,22 @@ GameBoy::run_status GameBoy::run_cycle()
 						break;
 						}
 
-					// There is no SBC inm
+					// SBC inm
+					case 0xDE: {
+						int carry = (check_flag(CARRY_FLAG)? 1 : 0);
+						int inm = memory.read(regs.PC++);
+						int res = regs.A - inm - carry;
+						int half_res = (regs.A & 0x0F) - (inm & 0x0F) - carry;
+						regs.A = static_cast<u8>(res);
+
+						set_flag(ADD_SUB_FLAG);
+						set_flag_if (res < 0,      CARRY_FLAG);
+						set_flag_if (res == 0,     ZERO_FLAG);
+						set_flag_if (half_res < 0, HALF_CARRY_FLAG);
+						cycles_until_next_instruction = 8; 
+						break;
+						}
+
 
 					// AND n
 					for_each_register(0xA7, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, AND_reg)

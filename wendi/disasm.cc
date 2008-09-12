@@ -279,6 +279,7 @@ Instruction disassemble_opcode(GameBoy &gb, u16 addr)
 		dis_for_each_register(0x9F, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, "SBC", Instruction::ALU, dis_reg)
 
 		dis__reg16_(0x9E, "SBC", Instruction::ALU, HL)
+		dis_reg_inm(0xDE, "SBC", Instruction::ALU, A)
 
 		// AND n
 		dis_for_each_register(0xA7, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, "AND", Instruction::ALU, dis_reg)
