@@ -1,5 +1,5 @@
-#CXXFLAGS=-pg -O3 -g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast
-CXXFLAGS=-pg -g -Wall -Weffc++ -Wold-style-cast \
+#CXXFLAGS=-pg -O3 -g -Wall -Weffc++ -Wstrict-null-sentinel -Wold-style-cast 
+CXXFLAGS=-pg -O3 -g -Wall -Weffc++ -Wold-style-cast \
 	 -Woverloaded-virtual $(shell sdl-config --cflags)
 LDFLAGS=-pg -g $(shell sdl-config --libs)
 
@@ -33,7 +33,7 @@ tests/test_gbrom: GBRom.cc GBRom.h
 	g++ $(CXXFLAGS)  -DTEST_GBROM -o $@ GBRom.cc $(LDFLAGS)
 
 tests/test_core: tests/test_core.cc gbcore.o MBC.o GBMemory.o GBRom.o \
-	GBVideo.o util.o NoMBC.o MBC1.o
+	GBVideo.o util.o NoMBC.o MBC1.o wendi/disasm.o
 	g++ $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 wendi/CodeBlock.o: wendi/CodeBlock.cc wendi/CodeBlock.h

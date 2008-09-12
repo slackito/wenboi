@@ -1,5 +1,6 @@
 #include "../gbcore.h"
 #include "../Logger.h"
+#include "../wendi/disasm.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -139,7 +140,7 @@ int main(int argc, char **argv)
 		{
 			break;
 		}
-		/*
+		
 		else if (command == "disasm" || command == "d")
 		{
 			int start, end, pos;
@@ -163,21 +164,19 @@ int main(int argc, char **argv)
 			pos = start;
 			while (pos < end)
 			{
-				string ins;
-				int len;
-				gb.disassemble_opcode(pos, ins, len);
+				Instruction ins(disassemble_opcode(gb, pos));
 				cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << 
 						pos << "\t";
-				for (int i=0; i<len; i++)
+				for (int i=0; i<ins.length; i++)
 					cout << std::setw(2) << int(gb.memory.read(pos+i)) << " ";
 			
-				if (len < 3) cout << "\t";
-				cout << "\t" << ins << endl;
-				pos += len;
+				if (ins.length < 3) cout << "\t";
+				cout << "\t" << ins.all << endl;
+				pos += ins.length;
 			}
 
 		}
-		*/
+		
 		else if (command == "x")
 		{
 			int addr = str2int(arguments[0]);
