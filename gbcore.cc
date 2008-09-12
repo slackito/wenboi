@@ -4,6 +4,7 @@
 #include "MBC.h"
 #include "Logger.h"
 #include "util.h"
+#include "wendi/disasm.h"
 #include <sstream>
 #include <iomanip>
 #include <string>
@@ -1444,14 +1445,12 @@ GameBoy::run_status GameBoy::run()
 
 std::string GameBoy::status_string()
 {
-	std::string disassembled_instruction;
-	//int length;
-	//disassemble_opcode(regs.PC, disassembled_instruction, length);
+        Instruction ins(disassemble_opcode(*this, regs.PC));
 
 	std::ostringstream result;
 	result << "t = " << std::dec << cycle_count << 
 		"\tPC = " << std::hex << std::setw(4) << std::setfill('0') << regs.PC << 
-		"\t" << disassembled_instruction << std::endl <<
+		"\t" << ins.all << std::endl <<
 		"A = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.A) <<
 		" B = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.B) <<
 		" C = " << std::hex << std::setw(2) << std::setfill('0') << int(regs.C) <<
