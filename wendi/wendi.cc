@@ -26,6 +26,7 @@ typedef u16 address;
 
 list<CodeBlock> blocks;
 list<CodeBlock> pending;
+list<CodeBlock> ignore;
 
 
 void classify_block(CodeBlock &b)
@@ -319,6 +320,12 @@ int main(int argc, char **argv)
 				config >> std::hex >> a;
 				pending.push_back(CodeBlock(a));
 			}
+			else if (cmd == "ignore")
+			{
+				address a;
+				config >> std::hex >> a;
+				ignore.push_back(CodeBlock(a));
+			}
 			else if (cmd == "jump_table")
 			{
 				address start, end;
@@ -354,6 +361,11 @@ int main(int argc, char **argv)
 		pending.pop_front();
 
 		address addr = block.start;
+		if (find_block(ignore, addr) != ignore.end())
+		{
+			logger.info("Ignoring block at 0x", std::hex, addr);
+			continue;
+		}
 		logger.info("Starting disassembly of block 0x", std::hex, addr);
 
 		bool block_end = false;
