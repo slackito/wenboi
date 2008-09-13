@@ -59,6 +59,12 @@ class Logger: public Singleton<Logger>
 		#define LOGFUNC8(func, tag) template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8> \
 		void func(T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6, T7 p7, T8 p8) \
 		{ std::stringstream str; str << p1 << p2 << p3 << p4 << p5 << p6 << p7 << p8; log(tag, str.str()); }
+		#define LOGFUNC9(func, tag) template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9> \
+		void func(T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6, T7 p7, T8 p8, T9 p9) \
+		{ std::stringstream str; str << p1 << p2 << p3 << p4 << p5 << p6 << p7 << p8 << p9; log(tag, str.str()); }
+		#define LOGFUNC10(func, tag) template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10> \
+		void func(T1 p1, T2 p2, T3 p3, T4 p4, T5 p5, T6 p6, T7 p7, T8 p8, T9 p9, T10 p10) \
+		{ std::stringstream str; str << p1 << p2 << p3 << p4 << p5 << p6 << p7 << p8 << p9 << p10; log(tag, str.str()); }
 
 		#define LOGFUNC(func, tag) \
 			LOGFUNC1(func, tag) \
@@ -68,7 +74,9 @@ class Logger: public Singleton<Logger>
 			LOGFUNC5(func, tag) \
 			LOGFUNC6(func, tag) \
 			LOGFUNC7(func, tag) \
-			LOGFUNC8(func, tag)
+			LOGFUNC8(func, tag) \
+			LOGFUNC9(func, tag) \
+			LOGFUNC10(func, tag)
 
 		LOGFUNC(critical, CRITICAL)
 		LOGFUNC(error,    ERROR)
