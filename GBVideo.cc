@@ -392,7 +392,6 @@ void GBVideo::draw()
 
 			//logger.trace("LY=",LY," sprites=",v.size());
 			// draw sprites
-			u16 tile_data_addr = 0x0000;
 			int cur_x = 0;
 			for (u32 i=0; i<v.size() && i<10 ; i++)
 			{
@@ -401,7 +400,8 @@ void GBVideo::draw()
 				int sprite_y = LY - (v[i].y - 16);
 				bool mirror_x = check_bit(v[i].flags, 5);
 				bool mirror_y = check_bit(v[i].flags, 6);
-				int mx, my;
+
+				if (mirror_y) sprite_y = 15-sprite_y;
 
 				int current_tile_index = v[i].tile;
 					logger.trace("sprite #", i, 
@@ -427,7 +427,7 @@ void GBVideo::draw()
 				u8 current_row_high = VRAM[current_tile_addr+2*sprite_y+1];
 				for (int x=sprite_x; x < 8; x++)
 				{
-					mx = !mirror_x? 7-x : x;
+					int mx = mirror_x? x : 7-x;
 					u8 color = ((current_row_high >> mx)&1) << 1 | 
 								((current_row_low >> mx)&1);
 
