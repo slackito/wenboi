@@ -10,6 +10,9 @@ std::string get_port_name(int port)
 
 	switch (port)
 	{
+		case 0x00: port_name = "JOYP"; break;
+		case 0x01: port_name = "SB  "; break;
+		case 0x02: port_name = "SC  "; break;
 		case 0x04: port_name = "DIV "; break;
 		case 0x05: port_name = "TIMA"; break;
 		case 0x06: port_name = "TMA "; break;
