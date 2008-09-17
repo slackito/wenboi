@@ -70,6 +70,7 @@ void GameBoy::reset()
 		memory.write(i, 0);
 	}
 
+	memory.write(0xFF00, 0xFF);   // TIMA
 	memory.write(0xFF05, 0x00);   // TIMA
 	memory.write(0xFF06, 0x00);   // TMA
 	memory.write(0xFF07, 0x00);   // TAC
@@ -105,6 +106,9 @@ void GameBoy::reset()
 	memory.write(0xFF4A, 0x00);   // WY
 	memory.write(0xFF4B, 0x00);   // WX
 	memory.write(0xFFFF, 0x00);   // IE
+
+	for (int i=0; i<NUM_CONTROLS; i++)
+		controls[i]=false;
 }
 
 int GameBoy::set_breakpoint(u16 addr)
@@ -1408,6 +1412,13 @@ GameBoy::run_status GameBoy::run()
 {
 	static const int CYCLES_PER_INPUT_CHECK = 40000;
 	static int c=0;
+
+	bool must_update_JOYP  = false; // has any button changed state?
+
+	// needed for firing joypad interrupt
+	bool button_pressed    = false;
+	bool direction_pressed = false;
+
 	SDL_Event ev;
 
 	run_status status=NORMAL;
@@ -1428,13 +1439,89 @@ GameBoy::run_status GameBoy::run()
 								return PAUSED;
 							case SDLK_q:
 								return QUIT;
+							case SDLK_UP:
+								controls[PAD_UP]=true;
+								direction_pressed=true;
+								break;
+							case SDLK_DOWN:
+								controls[PAD_DOWN]=true;
+								direction_pressed=true;
+								break;
+							case SDLK_LEFT:
+								controls[PAD_LEFT]=true;
+								direction_pressed=true;
+								break;
+							case SDLK_RIGHT:
+								controls[PAD_RIGHT]=true;
+								direction_pressed=true;
+								break;
+							case SDLK_z:
+								controls[BUTTON_A]=true;
+								button_pressed=true;
+								break;
+							case SDLK_x:
+								controls[BUTTON_B]=true;
+								button_pressed=true;
+								break;
+							case SDLK_SPACE:
+								controls[BUTTON_START]=true;
+								button_pressed=true;
+								break;
+							case SDLK_RETURN:
+								controls[BUTTON_SELECT]=true;
+								button_pressed=true;
+								break;
 							default:
 								break;
 						}
+						must_update_JOYP=true;
+						break;
+					case SDL_KEYUP:
+						switch(ev.key.keysym.sym)
+						{
+							case SDLK_UP:
+								controls[PAD_UP]=false;
+								break;
+							case SDLK_DOWN:
+								controls[PAD_DOWN]=false;
+								break;
+							case SDLK_LEFT:
+								controls[PAD_LEFT]=false;
+								break;
+							case SDLK_RIGHT:
+								controls[PAD_RIGHT]=false;
+								break;
+							case SDLK_z:
+								controls[BUTTON_A]=false;
+								break;
+							case SDLK_x:
+								controls[BUTTON_B]=false;
+								break;
+							case SDLK_SPACE:
+								controls[BUTTON_START]=false;
+								break;
+							case SDLK_RETURN:
+								controls[BUTTON_SELECT]=false;
+								break;
+							default:
+								break;
+						}
+						must_update_JOYP=true;
 						break;
 					case SDL_QUIT:
 						return QUIT;
 				}
+			}
+
+			if (must_update_JOYP)
+				update_JOYP();
+
+			if (button_pressed || direction_pressed)
+			{
+				u8 JOYP = memory.read(GBMemory::JOYP, GBMemory::DONT_WATCH);
+				if ((check_bit(JOYP,5)==false && button_pressed) ||
+						(check_bit(JOYP,4)==false && direction_pressed))
+					irq(IRQ_JOYPAD);
 			}
 		}
 		status = run_cycle();
@@ -1467,5 +1554,36 @@ std::string GameBoy::status_string()
 		"IME = " << int(IME) << " IE = " << int(memory.read(0xFFFF, GBMemory::DONT_WATCH)) << 
 		" IF = " << int(memory.read(0xFF0F, GBMemory::DONT_WATCH));
 	return result.str();
+}
+
+void GameBoy::update_JOYP()
+{
+	u8 JOYP = memory.high[GBMemory::I_JOYP];
+
+	// Check if writing D-Pad status to JOYP
+	if (check_bit(JOYP,4)==false)
+	{
+		if (controls[PAD_DOWN])  JOYP=reset_bit(JOYP, 3);
+		else JOYP=set_bit(JOYP, 3);
+		if (controls[PAD_UP])    JOYP=reset_bit(JOYP, 2);
+		else JOYP=set_bit(JOYP, 2);
+		if (controls[PAD_LEFT])  JOYP=reset_bit(JOYP, 1);
+		else JOYP=set_bit(JOYP, 1);
+		if (controls[PAD_RIGHT]) JOYP=reset_bit(JOYP, 0);
+		else JOYP=set_bit(JOYP, 0);
+	}
+	else // Write button status
+	{
+		if (controls[BUTTON_START])  JOYP=reset_bit(JOYP, 3);
+		else JOYP=set_bit(JOYP, 3);
+		if (controls[BUTTON_SELECT]) JOYP=reset_bit(JOYP, 2);
+		else JOYP=set_bit(JOYP, 2);
+		if (controls[BUTTON_B])      JOYP=reset_bit(JOYP, 1);
+		else JOYP=set_bit(JOYP, 1);
+		if (controls[BUTTON_A])      JOYP=reset_bit(JOYP, 0);
+		else JOYP=set_bit(JOYP, 0);
+	}
+
+	memory.high[GBMemory::I_JOYP]=JOYP;
 }
 

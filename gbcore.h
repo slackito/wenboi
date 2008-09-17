@@ -29,12 +29,26 @@ class GameBoy
 		CARRY_FLAG      = 0x10,
 	};
 
+	enum Controls
+	{
+		BUTTON_A=0,
+		BUTTON_B,
+		BUTTON_START,
+		BUTTON_SELECT,
+		PAD_UP,
+		PAD_DOWN,
+		PAD_LEFT,
+		PAD_RIGHT,
+		NUM_CONTROLS
+	};
+
 
 	friend class GBMemory;
 	friend class GBVideo;
 	GBMemory memory;
 	GBVideo video;
 	GBRom *rom;
+	bool controls[NUM_CONTROLS];
 
 	// CPU Registers
 	// ENDIANNESS WARNING!
@@ -120,6 +134,8 @@ class GameBoy
 	private:
 	GameBoy(const GameBoy&);
 	GameBoy operator=(const GameBoy&);
+
+	void update_JOYP();
 	
 	// debug things
 	struct Breakpoint {

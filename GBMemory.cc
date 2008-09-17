@@ -55,7 +55,11 @@ void GBMemory::write(u16 addr, u8 value, WatchpointControl watch)
 	else if (addr < 0xE000) WRAM[addr - WRAM_BASE] = value;
 	else if (addr < 0xFE00) write(addr-0x2000, value);
 	else if (addr < 0xFEA0) core->video.write_OAM (addr, value);
-	else if (addr >= 0xFF00) {
+	else if (addr == 0xFF00) {
+		high[0] = (high[0] & 0xCF) | (value & 0x30);
+		core->update_JOYP();
+	}
+	else if (addr > 0xFF00) {
 		high[addr-0xFF00] = value;
 		if (addr == DIV) 
 		{

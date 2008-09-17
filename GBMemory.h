@@ -85,6 +85,7 @@ class GBMemory
 	void write (u16 addr, u8 value, WatchpointControl watch = WATCH);
 	
 	public:
+	static const u16 JOYP = 0xFF00; // Joypad               (R/W)
 	static const u16 DIV  = 0xFF04; // Divider register     (R/W)
 	static const u16 TIMA = 0xFF05; // Timer counter        (R/W)
 	static const u16 TMA  = 0xFF06; // Timer modulo         (R/W)
@@ -105,6 +106,7 @@ class GBMemory
 	static const u16 IE   = 0xFFFF; // Interrupt enable     (R/W)
 
 	private:
+	static const u16 I_JOYP = 0xFF00 - IO_BASE; // Joypad               (R/W)
 	static const u16 I_DIV  = 0xFF04 - IO_BASE; // Divider register     (R/W)
 	static const u16 I_TIMA = 0xFF05 - IO_BASE; // Timer counter        (R/W)
 	static const u16 I_TMA  = 0xFF06 - IO_BASE; // Timer modulo         (R/W)
