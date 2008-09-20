@@ -1,5 +1,8 @@
 #include "../gbcore.h"
 #include "../Logger.h"
+#include "disassembly_output.h"
+#include "output_txt.h"
+#include "output_graph.h"
 #include "CodeBlock.h"
 #include "disasm.h"
 
@@ -91,96 +94,40 @@ void classify_block(CodeBlock &b)
 		}
 		else
 		{
-			block_name << "block";
+			block_name << "loc";
 		}
 
-		block_name << "_0x" << std::hex << std::setw(4) << std::setfill('0') << b.start;
+		block_name << "_" << std::hex << std::setw(4) << std::setfill('0') << b.start;
 	}
 
 	b.name = block_name.str();
 }
 
-
-void show_jump_table_block(GameBoy &gb, const CodeBlock &b)
+bool does_fall_through(const Instruction &ins)
 {
-	int n = (b.end - b.start)/2;
-
-	std::cout << ";-- JUMP TABLE ------------------------" << std::endl;
-	for (int i=0; i<n; i++)
-	{
-		address addr = b.start+2*i;
-		std::cout << "\t0x" << std::hex << std::setw(4) <<  std::setfill('0') << addr <<
-			"\t" <<  i << "\t0x" << std::setw(2) << gb.memory.read16(addr) << std::endl;;
-	}
+	if (ins.type == Instruction::UNCONDITIONAL_RET ||
+			ins.type == Instruction::UNCONDITIONAL_JUMP)
+		return false;
+	return true;
 }
 
 
-
-void show_disassembly_block(const CodeBlock& b)
-{
-	std::ostringstream xrefsstr;
-	
-	if (!b.xrefs.empty())
-		xrefsstr << "\t;xrefs ";
-
-	// check for CALL xrefs; build xrefs list string
-	for(CodeBlock::XrefsConstIterator i=b.xrefs.begin();
-			i!=b.xrefs.end();
-			i++)
-	{
-		xrefsstr << std::hex << "0x" << std::setw(4) << std::setfill('0') << i->first << ",";
-	}
-	
-	xrefsstr << std::endl;
-	
-	// Print header to stdout
-	if (b.type & CodeBlock::FUNCTION)
-		std::cout << std::endl << ";-- FUNCTION --------------------------" << std::endl;
-	if (b.type & CodeBlock::VBLANK_HANDLER)
-		std::cout << std::endl << ";-- VBLANK INTERRUPT HANDLER ----------" << std::endl;
-	if (b.type & CodeBlock::LCD_STAT_HANDLER)
-		std::cout << std::endl << ";-- LCD_STAT INTERRUPT HANDLER --------" << std::endl;
-	if (b.type & CodeBlock::TIMER_HANDLER)
-		std::cout << std::endl << ";-- TIMER INTERRUPT HANDLER -----------" << std::endl;
-	if (b.type & CodeBlock::SERIAL_HANDLER)
-		std::cout << std::endl << ";-- SERIAL INTERRUPT HANDLER ----------" << std::endl;
-	if (b.type & CodeBlock::JOYPAD_HANDLER)
-		std::cout << std::endl << ";-- JOYPAD INTERRUPT HANDLER ----------" << std::endl;
-
-	if (b.type & CodeBlock::ENTRYPOINT)
-		std::cout << std::endl << ";-- ENTRYPOINT ------------------------" << std::endl;
-	
-	std::cout << b.name << ":";
-
-	std::cout << xrefsstr.str();
-
-	// Print disassembly
-	for(CodeBlock::DisassemblyConstIterator i=b.disassembly.begin();
-			i!=b.disassembly.end();
-			i++)
-	{
-		std::cout << std::hex << "\t0x" << 
-			std::setw(4) << std::setfill('0') << i->first << 
-			"\t" << i->second << std::endl;
-	}
-}
-
-bool is_block_end(const Instruction &ins)
-{
-	if (ins.type == Instruction::UNCONDITIONAL_JUMP || 
-			ins.type == Instruction::UNCONDITIONAL_RET ||
-			ins.type == Instruction::RESET)
-		return true;
-
-	return false;
-}
-
+// true if it's a jump with known destination address
 bool is_jump(const Instruction &ins)
 {
 	if (ins.type == Instruction::UNCONDITIONAL_JUMP ||
 			ins.type == Instruction::CONDITIONAL_JUMP ||
 			ins.type == Instruction::CALL ||
 			ins.type == Instruction::RESET)
+		return true;
+	return false;
+}
+
+bool is_block_end(const Instruction &ins)
+{
+	if (is_jump(ins) ||
+			ins.type == Instruction::CONDITIONAL_RET || 
+			ins.type == Instruction::UNCONDITIONAL_RET)
 		return true;
 	return false;
 }
@@ -233,64 +180,58 @@ list<CodeBlock>::iterator find_block(list<CodeBlock> &l, address addr)
 	//logger.trace("<-- find_block()");
 	return i;
 }
+				
 
-void hexdump(GameBoy &gb, address start, address end)
+void new_block_start(address dst, address src, Instruction::InstructionType type, CodeBlock &current, 
+		             list<CodeBlock> &blocks, list<CodeBlock> &pending)
 {
-	if (end > start)
+	if (dst == current.start) // Check if dst is this block's beginning
 	{
-		std::cout << std::endl << ";-- HEXDUMP ---------------------------";
-		address i=start - (start%0x10);
-		if (i<start)
+		current.add_xref(src, type);
+	}
+	else if (dst > current.start && dst < current.end) // Check if dst is inside this block
+	{
+		logger.info("Splitting current block 0x", std::hex, current.start, " at 0x", dst);
+		CodeBlock newblock(current, dst);
+		blocks.push_back(current);
+		current = newblock;
+	}
+	else
+	{
+		// Check if dst is inside a known block
+		list<CodeBlock>::iterator i = find_block(blocks, dst);
+		if (i != blocks.end())
 		{
-			std::cout << std::endl << ";" << std::hex << "0x" << 
-				std::setw(4) << std::setfill('0') << start << " ";
-			while(i < start)
+			if (dst == i->start)
 			{
-				if (i % 0x10 == 8)
-					std::cout << "- ";
-				std::cout << "   ";
-				i++;
+				i->add_xref(src, type);
+			}
+			else
+			{
+				logger.info("Splitting block 0x", std::hex, i->start, " at 0x", dst);
+				blocks.push_back(CodeBlock(*i, dst));
+				blocks.back().add_xref(src, type);
+			}
+
+		}
+		else
+		{
+			// Check if dst is a pending block
+			i = find_block(pending, dst);
+			if (i != pending.end())
+			{
+				logger.info("Adding xref to pending block 0x", std::hex, i->start);
+				i->add_xref(src, type);
+			}
+			else
+			{
+				// dst is a new block
+				pending.push_back(CodeBlock(dst));
+				pending.back().add_xref(src, type);
+				logger.info("new block at ", std::hex, "0x", dst);
 			}
 		}
-
-		while(i<end)
-		{
-			if (i % 0x10 == 0)
-				std::cout << std::endl << ";" << std::hex << "0x" << i << " ";
-
-			if (i % 0x10 == 8)
-				std::cout << "- ";
-
-			std::cout << std::hex << std::setw(2) << std::setfill('0') << int(gb.memory.read(i)) << " ";
-			i++;
-		}
-
-		std::cout << std::endl << std::endl;
 	}
-}
-
-void show_disassembly(GameBoy &gb, vector<CodeBlock> &v)
-{
-	//std::for_each(tmp.begin(), tmp.end(), show_block);
-	
-	const address MAX_ADDRESS = 0xFFFF;
-	address last = 0;
-	for (vector<CodeBlock>::iterator i=v.begin();
-			i != v.end(); i++)
-	{
-		hexdump(gb, last, i->start);
-		switch (i->type)
-		{
-			case CodeBlock::JUMP_TABLE:
-				show_jump_table_block(gb, *i);
-				break;
-			default:
-				show_disassembly_block(*i);
-		}
-		last = i->end;
-	}
-
-	hexdump(gb, v.back().end, MAX_ADDRESS);
 }
 
 int main(int argc, char **argv)
@@ -378,67 +319,25 @@ int main(int argc, char **argv)
 			{
 				address dst = jump_address(ins);
 				logger.info("Found jump. dst address = 0x", std::hex, dst);
-				if (dst == block.start) // Check if dst is this block's beginning
-				{
-					block.add_xref(addr, ins.type);
-				}
-				else if (dst > block.start && dst < block.end) // Check if dst is inside this block
-				{
-					logger.info("Splitting current block 0x", std::hex, block.start, " at 0x", dst);
-					CodeBlock newblock(block, dst);
-					blocks.push_back(block);
-					block = newblock;
-				}
-				else
-				{
-					// Check if dst is inside a known block
-					list<CodeBlock>::iterator i = find_block(blocks, dst);
-					if (i != blocks.end())
-					{
-						if (dst == i->start)
-						{
-							i->add_xref(addr, ins.type);
-						}
-						else
-						{
-							logger.info("Splitting block 0x", std::hex, i->start, " at 0x", dst);
-							blocks.push_back(CodeBlock(*i, dst));
-							blocks.back().add_xref(addr, ins.type);
-						}
-						
-					}
-					else
-					{
-						// Check if dst is a pending block
-						i = find_block(pending, dst);
-						if (i != pending.end())
-						{
-							logger.info("Adding xref to pending block 0x", std::hex, i->start);
-							i->add_xref(addr, ins.type);
-						}
-						else
-						{
-							// dst is a new block
-							pending.push_back(CodeBlock(dst));
-							pending.back().add_xref(addr, ins.type);
-							logger.info("new block at ", std::hex, "0x", dst);
-						}
-					}
-				}
+				new_block_start(dst, addr, ins.type, block, blocks, pending);
 			}
 
-			addr += ins.length;
+			address new_addr = addr+ins.length;
 
 			// If new addr is in another block, this block is over
-			if (find_block(blocks, addr) != blocks.end() ||
-				find_block(pending, addr) != pending.end() ||
+			if (find_block(blocks, new_addr) != blocks.end() ||
+				find_block(pending, new_addr) != pending.end() ||
 				is_block_end(ins))
 			{
 				block_end=true;
+				if (does_fall_through(ins))
+				{
+					new_block_start(new_addr, addr, Instruction::OTHER,
+							block, blocks, pending);
+				}
 			}
-				
 
-
+			addr = new_addr;
 		}
 
 		blocks.push_back(block);
@@ -450,7 +349,9 @@ int main(int argc, char **argv)
 	std::sort(tmp.begin(), tmp.end());	
 	std::for_each(tmp.begin(), tmp.end(), classify_block);
 
-	show_disassembly(gb, tmp);
+    GraphDisassemblyOutput output(std::cout);
+    //TextDisassemblyOutput output(std::cout);
+	output.generate_output(gb, tmp);
 
 	return 0;
 }

@@ -30,7 +30,10 @@ CodeBlock::CodeBlock(CodeBlock &block, address addr): //< removes [addr,end[ fro
 			block.disassembly.end(),
 			compose1(bind2nd(equal_to<address>(), addr),
 				select1st<DisassemblyItem>()));
+	DisassemblyIterator tmp = first;
+	this->add_xref((--tmp)->first, Instruction::OTHER);
 	DisassemblyIterator last  = block.disassembly.end();
+	
 	disassembly.splice(disassembly.end(), block.disassembly, first, last);
 }
 
