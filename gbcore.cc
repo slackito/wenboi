@@ -351,7 +351,7 @@ GameBoy::run_status GameBoy::run_cycle()
 							reset_flag(CARRY_FLAG);
 						}
 
-						if (regs.A & 0x0F > 9 || check_flag(HALF_CARRY_FLAG)) {
+						if ((regs.A & 0x0F) > 9 || check_flag(HALF_CARRY_FLAG)) {
 							corr_factor |= 0x06;
 						}
 
