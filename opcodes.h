@@ -18,6 +18,9 @@
 
 // Macro definitions to avoid unnecesary repetition in gbcore.cc
 
+#ifndef OPCODES_H
+#define OPCODES_H
+
 #define set_flag_if(cond, flag) \
 	if (cond) set_flag(flag); \
 	else reset_flag(flag)
@@ -352,6 +355,6 @@
 
 
 
-
+#endif
 
 
