@@ -248,9 +248,9 @@ int main(int argc, char **argv)
 	pending.push_back(CodeBlock(0x58));
 	pending.push_back(CodeBlock(0x60));
 
-	if (argc > 2)
+	if (argc > 3)
 	{
-		std::ifstream config(argv[2]);
+		std::ifstream config(argv[3]);
 		while (!config.eof())
 		{
 			std::string cmd;
@@ -349,9 +349,13 @@ int main(int argc, char **argv)
 	std::sort(tmp.begin(), tmp.end());	
 	std::for_each(tmp.begin(), tmp.end(), classify_block);
 
-    GraphDisassemblyOutput output(std::cout);
-    //TextDisassemblyOutput output(std::cout);
-	output.generate_output(gb, tmp);
+	std::ofstream graph_stream((std::string(argv[2])+".dot").c_str());
+	std::ofstream txt_stream((std::string(argv[2])+".txt").c_str());
+
+    GraphDisassemblyOutput graph(graph_stream);
+    TextDisassemblyOutput text(txt_stream);
+	graph.generate_output(gb, tmp);
+	text.generate_output(gb, tmp);
 
 	return 0;
 }
