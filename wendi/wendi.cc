@@ -369,8 +369,8 @@ int main(int argc, char **argv)
 	std::sort(tmp.begin(), tmp.end());	
 	std::for_each(tmp.begin(), tmp.end(), classify_block);
 
-	std::ofstream graph_stream((std::string(argv[2])+".dot").c_str());
-	std::ofstream txt_stream((std::string(argv[2])+".txt").c_str());
+	std::ofstream graph_stream((std::string(argv[1])+".dot").c_str());
+	std::ofstream txt_stream((std::string(argv[1])+".txt").c_str());
 
     GraphDisassemblyOutput graph(graph_stream);
     TextDisassemblyOutput text(txt_stream);
