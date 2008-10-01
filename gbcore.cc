@@ -326,7 +326,7 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					case 0x34: {//INC (HL)
 						int half_res = (memory.read(regs.HL) & 0x0F) + 1; 
-						memory.write(regs.HL, memory.read(regs.HL) - 1); 
+						memory.write(regs.HL, memory.read(regs.HL) + 1); 
 						reset_flag(ADD_SUB_FLAG); 
 						set_flag_if (memory.read(regs.HL) == 0, ZERO_FLAG); 
 						set_flag_if (half_res > 0x0F,      HALF_CARRY_FLAG); 
