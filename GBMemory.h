@@ -100,7 +100,15 @@ class GBMemory
 	u8   read  (u16 addr, WatchpointControl watch = WATCH);
 	u16  read16(u16 addr, WatchpointControl watch = WATCH);
 	void write (u16 addr, u8 value, WatchpointControl watch = WATCH);
-	
+
+	enum PortAccess
+	{
+		READ_ONLY  = 1,
+		WRITE_ONLY = 2,
+		READWRITE  = 3,
+	};
+
+
 	public:
 	static const u16 JOYP = 0xFF00; // Joypad               (R/W)
 	static const u16 DIV  = 0xFF04; // Divider register     (R/W)
@@ -142,6 +150,8 @@ class GBMemory
 	static const u16 I_DMA  = 0xFF46 - IO_BASE; // DMA Transfer & Start addr (W)
 	static const u16 I_IF   = 0xFF0F - IO_BASE; // Interrupt flag       (R/W)
 	static const u16 I_IE   = 0xFFFF - IO_BASE; // Interrupt enable       (R/W)
+	
+	static const PortAccess port_access[256];
 };
 
 
