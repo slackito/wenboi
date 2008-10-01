@@ -431,7 +431,7 @@ GameBoy::run_status GameBoy::run_cycle()
 						} else {
 							logger.critical("Unknown sub-opcode ", 
 								std::hex, std::setw(2), std::setfill('0'),
-								sub_opcode, " after 0x10");
+								sub_opcode, " after 0x10. PC=0x",regs.PC-2);
 						}
 						cycles_until_next_instruction = 4; 
 						break;
@@ -1136,7 +1136,7 @@ GameBoy::run_status GameBoy::run_cycle()
 										break;
 									
 									default:
-										logger.critical("Unknown sub-opcode after 0xCB");
+										logger.critical("Unknown sub-opcode after 0xCB. PC=0x",std::hex, regs.PC-2);
 										break;
 								}
 							}
