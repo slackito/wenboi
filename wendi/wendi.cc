@@ -268,9 +268,9 @@ int main(int argc, char **argv)
 	pending.push_back(CodeBlock(0x58));
 	pending.push_back(CodeBlock(0x60));
 
-	if (argc > 3)
+	if (argc > 2)
 	{
-		std::ifstream config(argv[3]);
+		std::ifstream config(argv[2]);
 		while (!config.eof())
 		{
 			std::string cmd;
