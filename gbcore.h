@@ -21,6 +21,8 @@
 #include "sized_types.h"
 #include "GBMemory.h"
 #include "GBVideo.h"
+#include "Logger.h"
+#include <iomanip>
 #include <string>
 #include <map>
 
@@ -109,6 +111,7 @@ class GameBoy
 	
 	inline void do_call(u16 addr)
 	{
+		logger.debug("do_call(0x", std::hex, std::setw(4), std::setfill('0'), addr, ")");
 		memory.write(regs.SP-1, regs.PC >> 8); 
 		memory.write(regs.SP-2, regs.PC & 0xFF); 
 		regs.SP -= 2; 
