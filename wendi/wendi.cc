@@ -372,8 +372,8 @@ int main(int argc, char **argv)
 	std::ofstream graph_stream((std::string(argv[1])+".dot").c_str());
 	std::ofstream txt_stream((std::string(argv[1])+".txt").c_str());
 
-    GraphDisassemblyOutput graph(graph_stream);
-    TextDisassemblyOutput text(txt_stream);
+	GraphDisassemblyOutput graph(graph_stream);
+	TextDisassemblyOutput text(txt_stream);
 	graph.generate_output(gb, tmp);
 	text.generate_output(gb, tmp);
 
