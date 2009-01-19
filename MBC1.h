@@ -18,8 +18,8 @@
 #ifndef MBC1_H
 #define MBC1_H
 
-
 #include "MBC.h"
+#include <cstring>
 
 
 class MBC1: public MBC

@@ -19,6 +19,7 @@
 #define NOMBC_H
 
 #include "MBC.h"
+#include <cstring>
 
 class NoMBC: public MBC
 {
