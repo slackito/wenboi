@@ -18,7 +18,7 @@
 #ifndef GBROM_H
 #define GBROM_H
 
-#include "sized_types.h"
+#include "../common/sized_types.h"
 #include <string>
 
 namespace cartridge_types {

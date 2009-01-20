@@ -18,13 +18,12 @@
 
 // wendi, the WENboi DIsassembler :)
 
-#include "../gbcore.h"
-#include "../Logger.h"
+#include "../core/GameBoy.h"
+#include "../common/Logger.h"
 #include "disassembly_output.h"
 #include "output_txt.h"
 #include "output_graph.h"
 #include "CodeBlock.h"
-#include "disasm.h"
 
 #include <vector>
 #include <utility>
@@ -332,7 +331,7 @@ int main(int argc, char **argv)
 		bool block_end = false;
 		while(!block_end)
 		{
-			Instruction ins(disassemble_opcode(gb, addr));
+			Instruction ins(gb.disassemble_opcode(addr));
 			block.add_instruction(ins.all, ins.length);
 
 			if (is_jump(ins))

@@ -16,7 +16,7 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 #include "GBRom.h"
-#include "Logger.h"
+#include "../common/Logger.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>

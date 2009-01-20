@@ -15,9 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "../gbcore.h"
-#include "../Logger.h"
-#include "../wendi/disasm.h"
+#include "../core/GameBoy.h"
+#include "../common/Logger.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -181,7 +180,7 @@ int main(int argc, char **argv)
 			pos = start;
 			while (pos < end)
 			{
-				Instruction ins(disassemble_opcode(gb, pos));
+				Instruction ins(gb.disassemble_opcode(pos));
 				cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << 
 						pos << "\t";
 				for (int i=0; i<ins.length; i++)

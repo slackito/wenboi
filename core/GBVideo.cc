@@ -16,8 +16,8 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 #include "GBVideo.h"
-#include "gbcore.h"
-#include "Logger.h"
+#include "GameBoy.h"
+#include "../common/Logger.h"
 #include "util.h"
 #include <iostream>
 #include <algorithm>

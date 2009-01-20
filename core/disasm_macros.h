@@ -16,8 +16,7 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Macros to avoid unnecesary repetition in disasm.cc (like opcodes.h for
-// gbcore)
+// Macros to avoid unnecesary repetition in GameBoy.cc (disassembler)
 
 #ifndef DISASM_MACROS_H
 #define DISASM_MACROS_H
@@ -91,11 +90,11 @@
 // OP inm8
 #define dis_inm8(opcode, name, itype) \
 	case opcode: {\
-		int inm = int(gb.memory.read(PC++, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read(PC++, GBMemory::DONT_WATCH)); \
 		result << name << " 0x" << std::setw(2) << inm; \
 		opcode_str = name; \
 		ins_type = itype; \
-		op1.str  = ToString(inm); \
+		op1.str  = toString(inm); \
 		op2.str  = ""; \
 		op1.type = Instruction::INM8; \
 		op1.val  = inm; \
@@ -106,12 +105,12 @@
 // OP inm16
 #define dis_inm16(opcode, name, itype) \
 	case opcode: {\
-		int inm = int(gb.memory.read16(PC, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read16(PC, GBMemory::DONT_WATCH)); \
         PC += 2; \
 		result << name << " 0x" << std::setw(4) << inm; \
 		opcode_str = name; \
 		ins_type = itype; \
-		op1.str  = ToString(inm); \
+		op1.str  = toString(inm); \
 		op2.str  = ""; \
 		op1.type = Instruction::INM16; \
 		op1.val  = inm; \
@@ -121,12 +120,12 @@
 
 #define dis_reg_inm(opcode, name, itype, reg8) \
 	case opcode: {\
-		int inm = int(gb.memory.read(PC++, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read(PC++, GBMemory::DONT_WATCH)); \
 		result << name << " " << #reg8 << ", 0x" << std::setw(2) << inm; \
 		opcode_str = name; \
 		ins_type = itype; \
 		op1.str  = #reg8; \
-		op2.str  = ToString(inm); \
+		op2.str  = toString(inm); \
 		op1.type = Instruction::REG; \
 		op1.reg  = Instruction::reg8; \
 		op2.type = Instruction::INM8; \
@@ -136,13 +135,13 @@
 
 #define dis_reg16_inm(opcode, name, itype, reg16) \
 	case opcode: {\
-		int inm = int(gb.memory.read16(PC, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read16(PC, GBMemory::DONT_WATCH)); \
 		PC += 2; \
 		result << name << " " << #reg16 << ", 0x" << std::setw(4) << inm; \
 		opcode_str = name; \
 		ins_type = itype; \
 		op1.str  = #reg16; \
-		op2.str  = ToString(inm); \
+		op2.str  = toString(inm); \
 		op1.type = Instruction::REG; \
 		op1.reg  = Instruction::reg16; \
 		op2.type = Instruction::INM8; \
@@ -152,12 +151,12 @@
 
 #define dis_reg16_inm8(opcode, name, itype, reg16) \
 	case opcode: {\
-		int inm = int(gb.memory.read(PC++, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read(PC++, GBMemory::DONT_WATCH)); \
 		result << name << " " << #reg16 << ", 0x" << std::setw(2) << inm; \
 		opcode_str = name; \
 		ins_type = itype; \
 		op1.str  = #reg16; \
-		op2.str  = ToString(inm); \
+		op2.str  = toString(inm); \
 		op1.type = Instruction::REG; \
 		op1.reg  = Instruction::reg16; \
 		op2.type = Instruction::INM8; \
@@ -221,14 +220,14 @@
 // OP reg, (inm)
 #define dis_reg__inm_(opcode, name, itype, reg8) \
 	case opcode: {\
-		int inm = int(gb.memory.read16(PC, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read16(PC, GBMemory::DONT_WATCH)); \
         PC += 2; \
 		result << name << " " << #reg8 << ", (0x" << \
 				std::setw(4) << inm << ")"; \
 		opcode_str = name; \
 		ins_type = itype; \
 		op1.str  = #reg8; \
-		op2.str  = std::string("(") + ToString(inm) + ")"; \
+		op2.str  = std::string("(") + toString(inm) + ")"; \
 		op1.type = Instruction::REG; \
 		op1.reg  = Instruction::reg8; \
 		op2.type = Instruction::MEM_DIRECT; \
@@ -256,13 +255,13 @@
 // OP (inm), reg
 #define dis__inm__reg(opcode, name, itype, reg8) \
 	case opcode: {\
-		int inm = int(gb.memory.read16(PC, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read16(PC, GBMemory::DONT_WATCH)); \
         PC += 2; \
 		result << name << " (0x" << \
 				std::setw(4) << inm << "), " << #reg8; \
 		opcode_str = name; \
 		ins_type = itype; \
-		op1.str  = std::string("(") + ToString(inm) + ")"; \
+		op1.str  = std::string("(") + toString(inm) + ")"; \
 		op2.str  = #reg8; \
 		op1.type = Instruction::MEM_DIRECT; \
 		op1.val  = inm; \
@@ -274,13 +273,13 @@
 // OP (inm), reg16
 #define dis__inm__reg16(opcode, name, itype, reg16) \
 	case opcode: {\
-		int inm = int(gb.memory.read16(PC, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read16(PC, GBMemory::DONT_WATCH)); \
         PC += 2; \
 		result << name << " (0x" << \
 				std::setw(4) << inm << "), " << #reg16; \
 		opcode_str = name; \
 		ins_type = itype; \
-		op1.str  = std::string("(") + ToString(inm) + ")"; \
+		op1.str  = std::string("(") + toString(inm) + ")"; \
 		op2.str  = #reg16; \
 		op1.type = Instruction::MEM_DIRECT; \
 		op1.val  = inm; \
@@ -292,13 +291,13 @@
 // OP (reg16), inm
 #define dis__reg16__inm(opcode, name, itype, reg16) \
 	case opcode: {\
-		int inm = int(gb.memory.read(PC++, GBMemory::DONT_WATCH)); \
+		int inm = int(this->memory.read(PC++, GBMemory::DONT_WATCH)); \
 		result << name << " (" << #reg16 << "), 0x" << \
 				std::setw(2) << inm; \
 		opcode_str = name; \
 		ins_type = itype; \
 		op1.str  = std::string("(") + #reg16 + ")"; \
-		op2.str  = ToString(inm); \
+		op2.str  = toString(inm); \
 		op1.type = Instruction::MEM_INDIRECT; \
 		op1.reg  = Instruction::reg16; \
 		op2.type = Instruction::INM8; \
@@ -310,13 +309,13 @@
 // Special routine for JR
 #define dis_JR(opcode, name, itype) \
 	case opcode: { \
-		s8 offset = gb.memory.read(PC++); \
+		s8 offset = this->memory.read(PC++); \
 		result << name << " " << std::dec << int(offset) << "\t[0x" \
 				 << std::hex << std::setw(2) << int(PC+offset) << "]"; \
 		opcode_str = name; \
 		ins_type = itype; \
-		op1.str  = ToString(int(offset)); \
-		op2.str  = ToString(int(PC+offset)); \
+		op1.str  = toString(int(offset)); \
+		op2.str  = toString(int(PC+offset)); \
 		op1.type = Instruction::INM8; \
 		op1.val  = offset; \
 		op2.type = Instruction::NONE; \

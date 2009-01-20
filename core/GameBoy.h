@@ -18,13 +18,15 @@
 #ifndef GBCORE_H
 #define GBCORE_H
 
-#include "sized_types.h"
-#include "GBMemory.h"
-#include "GBVideo.h"
-#include "Logger.h"
 #include <iomanip>
 #include <string>
 #include <map>
+
+#include "GBMemory.h"
+#include "GBVideo.h"
+#include "Instruction.h"
+#include "../common/sized_types.h"
+#include "../common/Logger.h"
 
 union GBRom;
 
@@ -149,6 +151,8 @@ class GameBoy
 	void disable_breakpoint(int id);
 
 	std::string status_string();
+	Instruction disassemble_opcode(u16 addr);
+	static std::string get_port_name(int port);
 
 	// prevent object copying
 	private:

@@ -18,7 +18,7 @@
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
 
-#include "../sized_types.h"
+#include "../common/sized_types.h"
 
 struct Instruction
 {

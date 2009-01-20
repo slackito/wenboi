@@ -16,7 +16,7 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 #include "NoMBC.h"
-#include "Logger.h"
+#include "../common/Logger.h"
 
 #include <iomanip>
 

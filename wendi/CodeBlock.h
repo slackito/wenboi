@@ -22,8 +22,8 @@
 #include <utility>
 #include <string>
 #include <list>
-#include "Instruction.h"
-#include "../sized_types.h"
+#include "../core/Instruction.h"
+#include "../common/sized_types.h"
 
 typedef u16 address;
 

@@ -18,7 +18,7 @@
 #ifndef DISASSEMBLY_OUTPUT_H
 #define DISASSEMBLY_OUTPUT_H
 
-#include "../gbcore.h"
+#include "../core/GameBoy.h"
 #include "CodeBlock.h"
 #include <vector>
 

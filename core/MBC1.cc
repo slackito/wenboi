@@ -16,7 +16,7 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 #include "MBC1.h"
-#include "Logger.h"
+#include "../common/Logger.h"
 
 #include <iomanip>
 #include <cassert>

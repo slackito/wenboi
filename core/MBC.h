@@ -18,7 +18,7 @@
 #ifndef MBC_H
 #define MBC_H
 
-#include "sized_types.h"
+#include "../common/sized_types.h"
 #include "GBRom.h"
 
 class MBC

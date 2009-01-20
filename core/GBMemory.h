@@ -18,7 +18,7 @@
 #ifndef GBMEMORY_H
 #define GBMEMORY_H
 
-#include "sized_types.h"
+#include "../common/sized_types.h"
 #include <map>
 
 class GameBoy;

@@ -18,7 +18,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "sized_types.h"
+#include "../common/sized_types.h"
 
 uint32 set_bit(uint32 val, uint32 pos);
 uint32 reset_bit(uint32 val, uint32 pos);

@@ -16,9 +16,9 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "output_graph.h"
+#include "../common/Logger.h"
 #include <sstream>
 #include <iomanip>
-#include "../Logger.h"
 
 using std::vector;
 using std::string;

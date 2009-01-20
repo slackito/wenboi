@@ -19,7 +19,7 @@
 #include "NoMBC.h"
 #include "MBC1.h"
 
-#include "Logger.h"
+#include "../common/Logger.h"
 
 MBC *create_MBC(GBRom *rom)
 {

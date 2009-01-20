@@ -16,9 +16,9 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 #include "GBMemory.h"
+#include "GameBoy.h"
 #include "MBC.h"
-#include "gbcore.h"
-#include "Logger.h"
+#include "../common/Logger.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>

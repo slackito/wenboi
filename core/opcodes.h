@@ -16,7 +16,7 @@
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-// Macro definitions to avoid unnecesary repetition in gbcore.cc
+// Macro definitions to avoid unnecesary repetition in GameBoy.cc
 
 #ifndef OPCODES_H
 #define OPCODES_H
