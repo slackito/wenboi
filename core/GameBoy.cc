@@ -317,7 +317,7 @@ GameBoy::run_status GameBoy::run_cycle()
 					case 0x08: {
 						int addr = memory.read16(regs.PC);
 						regs.PC += 2;
-						memory.write(addr, regs.SP);
+						memory.write16(addr, regs.SP);
 						cycles_until_next_instruction = 20; 
 						break;
 						}

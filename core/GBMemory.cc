@@ -109,6 +109,11 @@ void GBMemory::write(u16 addr, u8 value, WatchpointControl watch)
 	}
 }
 
+void GBMemory::write16(u16 addr, u8 value, WatchpointControl watch)
+{
+	write(addr, value & 0xFF, watch);
+	write(addr+1, value >> 8, watch);
+}
 
 u8  GBMemory::read(u16 addr, WatchpointControl watch)
 {
