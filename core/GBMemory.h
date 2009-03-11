@@ -100,7 +100,7 @@ class GBMemory
 	u8   read   (u16 addr, WatchpointControl watch = WATCH);
 	u16  read16 (u16 addr, WatchpointControl watch = WATCH);
 	void write  (u16 addr, u8 value, WatchpointControl watch = WATCH);
-	void write16(u16 addr, u8 value, WatchpointControl watch = WATCH);
+	void write16(u16 addr, u16 value, WatchpointControl watch = WATCH);
 
 	enum PortAccess
 	{
