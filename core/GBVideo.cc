@@ -15,52 +15,39 @@
     You should have received a copy of the GNU General Public License
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */ 
-#include "GBVideo.h"
-#include "GameBoy.h"
-#include "../common/Logger.h"
-#include "util.h"
 #include <iostream>
 #include <algorithm>
 #include <vector>
 
+#include "GBVideo.h"
+#include "GameBoy.h"
+#include "../common/Logger.h"
+#include "util.h"
+
 
 GBVideo::GBVideo(GameBoy *core):
 	OAM(),
-	display(0),
 	core(core),
 	cur_window_line(0),
 	mode(2),
 	OAM_BUSY(false),
 	VRAM_BUSY(false),
 	frames_rendered(0),
-	t0(0),
-	t_last_frame(0),
+	screen(0),
 	oldscreen(0), newscreen(0),
 	display_mode(NORMAL),
 	cycles_until_next_update(0)
 {
-	SDL_Init(SDL_INIT_VIDEO);
-	display=SDL_SetVideoMode(320,288,32,SDL_SWSURFACE | SDL_DOUBLEBUF);
-
-	t0 = SDL_GetTicks();
 	oldscreen = new u8[160*144];
 	newscreen = new u8[160*144];
-
-	colors[0] = SDL_MapRGB(display->format, 192,192,0);
-	colors[1] = SDL_MapRGB(display->format, 139,139,21);
-	colors[2] = SDL_MapRGB(display->format, 101,101,42);
-	colors[3] = SDL_MapRGB(display->format, 64,64,64);
-	// colors[0] = SDL_MapRGB(display->format, 0xFF, 0xFF, 0xFF);
-	// colors[1] = SDL_MapRGB(display->format, 0xAA, 0xAA, 0xAA);
-	// colors[2] = SDL_MapRGB(display->format, 0x55, 0x55, 0x55);
-	// colors[3] = SDL_MapRGB(display->format, 0x00, 0x00, 0x00);
+	screen    = new u8[160*144]; // sum of old and new, 8 possible "colors" per pixel
 }
 
 GBVideo::~GBVideo()
 {
-	SDL_Quit();
 	delete [] oldscreen;
 	delete [] newscreen;
+	delete [] screen;
 }
 
 void GBVideo::reset()
@@ -177,42 +164,16 @@ u32 GBVideo::update()
 					core->irq(GameBoy::IRQ_LCD_STAT);
 				}
 
-				if (display_mode == NORMAL)
-				{
-					
-					u32 *pixels = static_cast<u32*>(display->pixels);
-					u32 pixels_per_line = display->pitch/display->format->BytesPerPixel;
-					for (int y=0; y<144; y++)
-						for (int x=0; x<160; x++)
-						{
-							u32 offset = 160*y+x;
-							u32 dst_offset = 2*y*pixels_per_line+2*x;
-							u32 avg = colors[(newscreen[offset] + oldscreen[offset])>>1];
-							pixels[dst_offset]                   = avg;
-							pixels[dst_offset+1]                 = avg;
-							pixels[dst_offset+pixels_per_line]   = avg;
-							pixels[dst_offset+pixels_per_line+1] = avg;
-						}
-				}
+				for (int i=0; i<144*160; i++)
+					screen[i]=oldscreen[i]+newscreen[i];
 
+				// do_vblank_callback
+
+				// replace oldscreen
 				memcpy(oldscreen, newscreen, 160*144);
 
-				SDL_Flip(display);
 				frames_rendered++;
-				u32 t1 = SDL_GetTicks();
-				if (t1-t0 > 1000)
-				{
-					char buf[50];
-					sprintf(buf, "%f FPS", frames_rendered/(0.001f*(t1-t0)));
-					SDL_WM_SetCaption(buf, 0);
-					t0=t1;
-					frames_rendered=0;
-				}
-			
-				//u32 delay = t1 - t_last_frame < 6 ? 16-(t1-t_last_frame) : 0;
-				//SDL_Delay(16-delay);
-				//t_last_frame = t1;
-
+				
 				// reset window Y
 				cur_window_line=0;
 
@@ -478,6 +439,9 @@ void GBVideo::draw()
 		}
 
 	}
+
+	// The code below should be moved to the emulator GUI
+#if 0
 	else if (display_mode == BG_MAP)
 	{
 		if (LY==0)
@@ -593,10 +557,6 @@ void GBVideo::draw()
 			}
 		}
 	}
-}
-
-int GBVideo::poll_event(SDL_Event *ev)
-{
-	return SDL_PollEvent(ev);
+#endif
 }
 

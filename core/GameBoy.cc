@@ -28,6 +28,8 @@
 #include <string>
 #include <cstring>
 
+bool GameBoy::is_pad[NUM_CONTROLS]={false, false, false, false, true, true, true, true};
+
 GameBoy::GameBoy(std::string rom_name, GameBoyType type):
 	gameboy_type(type),
 	memory(this),
@@ -1426,122 +1428,31 @@ GameBoy::run_status GameBoy::run_cycle()
 	}
 }
 
+void GameBoy::push_control(Control b)
+{
+	controls[b]=true;
+	bool direction_pressed = is_pad[b];
+	bool button_pressed = !is_pad[b];
+
+	update_JOYP();
+
+	// fire IRQ if needed
+	u8 JOYP = memory.read(GBMemory::JOYP, GBMemory::DONT_WATCH);
+	if ((check_bit(JOYP,5)==false && button_pressed) ||
+			(check_bit(JOYP,4)==false && direction_pressed))
+		irq(IRQ_JOYPAD);
+}
+
+void GameBoy::release_control(Control b)
+{
+	controls[b]=false;
+}
+
 GameBoy::run_status GameBoy::run() 
 {
-	static const int CYCLES_PER_INPUT_CHECK = 40000;
-	static int c=0;
-
-	bool must_update_JOYP  = false; // has any button changed state?
-
-	// needed for firing joypad interrupt
-	bool button_pressed    = false;
-	bool direction_pressed = false;
-
-	SDL_Event ev;
-
 	run_status status=NORMAL;
 	while (status == NORMAL || status == WAIT)
 	{
-		++c;
-		if (c==CYCLES_PER_INPUT_CHECK)
-		{
-			c=0;
-			while (video.poll_event(&ev))
-			{
-				switch(ev.type)
-				{
-					case SDL_KEYDOWN:
-						switch(ev.key.keysym.sym)
-						{
-							case SDLK_ESCAPE:
-								return PAUSED;
-							case SDLK_q:
-								return QUIT;
-							case SDLK_UP:
-								controls[PAD_UP]=true;
-								direction_pressed=true;
-								break;
-							case SDLK_DOWN:
-								controls[PAD_DOWN]=true;
-								direction_pressed=true;
-								break;
-							case SDLK_LEFT:
-								controls[PAD_LEFT]=true;
-								direction_pressed=true;
-								break;
-							case SDLK_RIGHT:
-								controls[PAD_RIGHT]=true;
-								direction_pressed=true;
-								break;
-							case SDLK_z:
-								controls[BUTTON_A]=true;
-								button_pressed=true;
-								break;
-							case SDLK_x:
-								controls[BUTTON_B]=true;
-								button_pressed=true;
-								break;
-							case SDLK_SPACE:
-								controls[BUTTON_START]=true;
-								button_pressed=true;
-								break;
-							case SDLK_RETURN:
-								controls[BUTTON_SELECT]=true;
-								button_pressed=true;
-								break;
-							default:
-								break;
-						}
-						must_update_JOYP=true;
-						break;
-					case SDL_KEYUP:
-						switch(ev.key.keysym.sym)
-						{
-							case SDLK_UP:
-								controls[PAD_UP]=false;
-								break;
-							case SDLK_DOWN:
-								controls[PAD_DOWN]=false;
-								break;
-							case SDLK_LEFT:
-								controls[PAD_LEFT]=false;
-								break;
-							case SDLK_RIGHT:
-								controls[PAD_RIGHT]=false;
-								break;
-							case SDLK_z:
-								controls[BUTTON_A]=false;
-								break;
-							case SDLK_x:
-								controls[BUTTON_B]=false;
-								break;
-							case SDLK_SPACE:
-								controls[BUTTON_START]=false;
-								break;
-							case SDLK_RETURN:
-								controls[BUTTON_SELECT]=false;
-								break;
-							default:
-								break;
-						}
-						must_update_JOYP=true;
-						break;
-					case SDL_QUIT:
-						return QUIT;
-				}
-			}
-
-			if (must_update_JOYP)
-				update_JOYP();
-
-			if (button_pressed || direction_pressed)
-			{
-				u8 JOYP = memory.read(GBMemory::JOYP, GBMemory::DONT_WATCH);
-				if ((check_bit(JOYP,5)==false && button_pressed) ||
-						(check_bit(JOYP,4)==false && direction_pressed))
-					irq(IRQ_JOYPAD);
-			}
-		}
 		status = run_cycle();
 	}
 	

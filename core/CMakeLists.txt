@@ -1,6 +1,2 @@
-FIND_PACKAGE(SDL REQUIRED)
-
-ADD_LIBRARY(wenboicore STATIC GameBoy.cc GBMemory.cc GBRom.cc GBVideo.cc MBC.cc NoMBC.cc MBC1.cc util.cc) 
-TARGET_LINK_LIBRARIES(wenboicore ${SDL_LIBRARY})
-INCLUDE_DIRECTORIES(${SDL_INCLUDE_DIR})
+ADD_LIBRARY(wenboicore SHARED GameBoy.cc GBMemory.cc GBRom.cc GBVideo.cc MBC.cc NoMBC.cc MBC1.cc util.cc) 
 

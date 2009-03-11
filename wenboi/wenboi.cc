@@ -15,14 +15,17 @@
     You should have received a copy of the GNU General Public License
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "../core/GameBoy.h"
-#include "../common/Logger.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <cstdlib>
 #include <vector>
+
+#include "SDL.h"
+
+#include "../core/GameBoy.h"
+#include "../common/Logger.h"
 
 using std::cin;
 using std::cout;
@@ -47,13 +50,17 @@ void print_run_result(GameBoy &gb, int status)
 {
 	if (status == GameBoy::BREAKPOINT)
 	{
-		cout << "Breakpoint hit at " << gb.regs.PC << endl;
+		cout << "Breakpoint reached " << endl;
 		cout << gb.status_string() << endl;
 	}
 	else if (status == GameBoy::WATCHPOINT)
 	{
+		cout << "Watchpoint reached" << endl;
+		/*
 		cout << "Watchpoint 0x" << std::hex << std::setw(4) << std::setfill('0') <<
 			int(gb.memory.watchpoint_addr) << " hit at 0x" << gb.regs.PC;
+		*/
+		// FIXME: Move/expose this things somewhere
 		if (gb.memory.watchpoint_newvalue == 0xFFFF)
 		{
 			cout << " (READ)" << endl << 
@@ -79,6 +86,10 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	GameBoy gb(argv[1]);
+	
+	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Surface *display=SDL_SetVideoMode(320,288,32,SDL_SWSURFACE | SDL_DOUBLEBUF);
+
 			
 	cout << gb.status_string() << endl;
 

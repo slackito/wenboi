@@ -19,7 +19,6 @@
 #define GBVIDEO_H
 
 #include "GBMemory.h"
-#include "SDL.h"
 #include "util.h"
 
 class GameBoy;
@@ -53,7 +52,6 @@ class GBVideo
 	};
 	
 	
-	SDL_Surface *display;
 	GameBoy *core;
 	
 	u8  cur_window_line;
@@ -63,9 +61,7 @@ class GBVideo
 
 	u32 colors[4];
 	u32 frames_rendered;
-	u32 t0;
-	u32 t_last_frame;
-	u8 *oldscreen, *newscreen;
+	u8 *oldscreen, *newscreen, *screen;
 
 	public:
 	enum DisplayMode {
@@ -88,6 +84,8 @@ class GBVideo
 
 	void reset();
 
+	const u8 *get_screen_buffer() { return screen; }
+
 	// VRAM/OAM access
 	u8   read_VRAM (int addr) const;
 	u8   read_OAM  (int addr) const;
@@ -104,9 +102,6 @@ class GBVideo
 	u32 update();
 	void set_display_mode(DisplayMode mode) { display_mode = mode; }
 
-	// event processing
-	int poll_event(SDL_Event *ev);
-	
 	// status queries
 	u32 get_frames_rendered() { return frames_rendered; }
 	
