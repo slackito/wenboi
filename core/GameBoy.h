@@ -54,6 +54,7 @@ class GameBoy
 			BREAKPOINT,
 			WATCHPOINT,
 			TRACEPOINT,
+			STEP,
 			PAUSED,
 			QUIT,
 			WAIT,
@@ -67,8 +68,11 @@ class GameBoy
 			IRQ_JOYPAD   = 0x10,
 		};
 
-		// Constructors
-		GameBoy(std::string rom_name, GameBoyType type=GAMEBOY);
+		// Constructors / destructors
+		GameBoy(GameBoyType type=GAMEBOY);
+		~GameBoy();
+
+		void load_ROM(std::string rom_name);
 
 		// running control methods
 		void irq(InterruptRequest i) { memory.write(0xFF0F, memory.read(0xFF0F) | i); }
@@ -93,7 +97,6 @@ class GameBoy
 		Instruction disassemble_opcode(u16 addr);
 		static std::string get_port_name(int port);
 	
-	private:
 		friend class GBMemory;
 		friend class GBVideo;
 		GBMemory memory;
@@ -140,6 +143,10 @@ class GameBoy
 
 		} regs;
 
+		void set_flag  (Flag f) { regs.flags |= f; }
+		void reset_flag(Flag f) { regs.flags &= (~f); }
+		int check_flag(Flag f) const { return ((regs.flags & f) != 0 ? 1 : 0); }
+		
 
 		u8 IME; // Interrupt master enable flag
 		u8 HALT; // Is the CPU halted waiting for an interrupt?
@@ -150,7 +157,8 @@ class GameBoy
 		u8  divider_count; // resets every 256 cycles, so we don't need a cmp
 		u32 timer_count;
 		static const u32 CYCLE_STEP = 4;
-		
+	
+        private:
 		inline void do_call(u16 addr)
 		{
 			logger.debug("do_call(0x", std::hex, std::setw(4), std::setfill('0'), addr, ")");
@@ -160,16 +168,15 @@ class GameBoy
 			regs.PC = addr; 
 		}
 
-		void set_flag  (Flag f) { regs.flags |= f; }
-		void reset_flag(Flag f) { regs.flags &= (~f); }
-		int check_flag(Flag f) const { return ((regs.flags & f) != 0 ? 1 : 0); }
-		
 		// prevent object copying
 		GameBoy(const GameBoy&);
 		GameBoy operator=(const GameBoy&);
 
 		// update JOYP register when controls are pushed/released
 		void update_JOYP();
+
+		// free ROM (used in destructor and load_rom)
+		void free_ROM();
 		
 		// debug things
 		struct Breakpoint {

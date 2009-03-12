@@ -40,25 +40,38 @@ void print_run_result(GameBoy &gb, int status)
 }
 
 
-QtBoiEmuThread::QtBoiEmuThread(QObject *parent, QString romName)
-	:QThread(parent)
+QtBoiEmuThread::QtBoiEmuThread(QObject *parent)
+	:QThread(parent),
+	status(GameBoy::NORMAL),
+	isPaused(true),
+	frameCount(0),
+	romName(),
+	runningMode(RUN),
+	quitRequested(false),
+	resetRequested(false),
+	romLoaded(false)
 {
-	gb = new GameBoy(romName.toStdString());
-	isPaused = true;
-	quitRequested = false;
-	frameCount = 0;
 }
 
 QtBoiEmuThread::~QtBoiEmuThread()
 {
-	stop();
-	wait();
-	delete gb;
 }
 
-void QtBoiEmuThread::toggle_paused()
+void QtBoiEmuThread::loadROM(QString name)
 {
-	isPaused = !isPaused;
+	romName=name;
+	reset();
+	romLoaded=true;
+}
+
+void QtBoiEmuThread::reset()
+{
+	resetRequested=true;
+}
+
+void QtBoiEmuThread::pause()
+{
+	isPaused = true;
 }
 
 void QtBoiEmuThread::cont()
@@ -82,45 +95,65 @@ void QtBoiEmuThread::step()
 
 void QtBoiEmuThread::run()
 {
-	cout << "Running! \\o/" << endl;
+	GameBoy gb;
+	cout << "GB created, emu thread running" << endl;
+	
+	// wait until ROM is loaded
+	while(!romLoaded)
+		msleep(500);
+
 	while(!quitRequested)
 	{
+		if(resetRequested)
+		{
+			resetRequested = false;
+			gb.load_ROM(romName.toStdString());
+			cout << "Loaded ROM " << romName.toStdString() << endl;
+		}
+
 		if(isPaused)
-			usleep(100);
-		else {
+			msleep(10);
+		else 
+		{
 			switch (runningMode)
 			{
 				case RUN:
-					while (!isPaused && 
-							(status == GameBoy::NORMAL || status == GameBoy::WAIT))
+					while (!isPaused && !resetRequested &&
+						(status == GameBoy::NORMAL || status == GameBoy::WAIT))
 					{
-						status = gb->run_cycle();
-						if (gb->video.get_frames_rendered() > frameCount)
+						status = gb.run_cycle();
+						if (gb.video.get_frames_rendered() > frameCount)
 						{
-							frameCount = gb->video.get_frames_rendered();
-							emit redraw(gb->video.get_screen_buffer());
+							frameCount = gb.video.get_frames_rendered();
+							emit redraw(gb.video.get_screen_buffer());
 						}
 					}
 					break;
 				case STEP:
 					do
 					{
-						status = gb->run_cycle();
-						if (gb->video.get_frames_rendered() > frameCount)
+						status = gb.run_cycle();
+						if (gb.video.get_frames_rendered() > frameCount)
 						{
-							frameCount = gb->video.get_frames_rendered();
-							emit redraw(gb->video.get_screen_buffer());
+							frameCount = gb.video.get_frames_rendered();
+							emit redraw(gb.video.get_screen_buffer());
 						}
 					} while(status == GameBoy::WAIT); // do nothing
+					isPaused = true;
 					
 					break;
 			}
 
-			print_run_result(*gb, status);
-			isPaused=true;
-			emit emulationPaused(); 
+			print_run_result(gb, status);
+			if (isPaused)
+			{
+				emit emulationPaused(); 
+			}
 		}
 	}
+	
+	cout << "Exiting emulation thread" << endl;
+
 }
 
 

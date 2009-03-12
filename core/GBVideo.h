@@ -103,7 +103,7 @@ class GBVideo
 	void set_display_mode(DisplayMode mode) { display_mode = mode; }
 
 	// status queries
-	u32 get_frames_rendered() { return frames_rendered; }
+	u32 get_frames_rendered() const { return frames_rendered; }
 	
 	// prevent object copying
 	private:

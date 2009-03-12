@@ -13,13 +13,17 @@ class QtBoiEmuThread: public QThread
     GameBoy::run_status status;
     bool isPaused;
     int frameCount;
-    QtBoiEmuThread(QObject *parent, QString romName);
+
+    QtBoiEmuThread(QObject *parent);
     ~QtBoiEmuThread();
+
+    void loadROM(QString romName);
  
   public slots:
+    void reset();
     void run();
     void stop();
-    void toggle_paused();
+    void pause();
     void cont();
     void step();
   
@@ -28,10 +32,12 @@ class QtBoiEmuThread: public QThread
     void redraw(const uchar *buffer);
 
   private:
+    QString romName;
     enum RunningMode { RUN, STEP };
-    GameBoy *gb;
     RunningMode runningMode;
     bool quitRequested;
+    bool resetRequested;
+    bool romLoaded;
 };
 
 

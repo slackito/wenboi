@@ -88,7 +88,10 @@ class GBMemory
 							watchpoint_oldvalue(0),
 							watchpoint_newvalue(0)
 							{}
+
+
 	void init(MBC *mbc) { this->mbc = mbc; }
+
 
 
 	enum WatchpointControl

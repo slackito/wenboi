@@ -30,7 +30,7 @@
 
 bool GameBoy::is_pad[NUM_CONTROLS]={false, false, false, false, true, true, true, true};
 
-GameBoy::GameBoy(std::string rom_name, GameBoyType type):
+GameBoy::GameBoy(GameBoyType type):
 	gameboy_type(type),
 	memory(this),
 	video(this),
@@ -46,6 +46,16 @@ GameBoy::GameBoy(std::string rom_name, GameBoyType type):
 	breakpoints(),
 	last_breakpoint_id(0)
 {
+}
+
+GameBoy::~GameBoy()
+{
+	free_ROM();
+}
+
+void GameBoy::load_ROM(std::string rom_name)
+{
+	free_ROM();
 	logger.info("GameBoy init");
 	rom = read_gbrom(rom_name);
 
@@ -55,6 +65,13 @@ GameBoy::GameBoy(std::string rom_name, GameBoyType type):
 	reset();
 }
 
+
+void GameBoy::free_ROM()
+{
+	::operator delete(reinterpret_cast<void*>(rom));
+	::operator delete(reinterpret_cast<void*>(memory.mbc));
+}
+	
 void GameBoy::reset()
 {
 	logger.info("GameBoy reset");
@@ -62,6 +79,9 @@ void GameBoy::reset()
 	HALT = 0;
 	cycle_count = 0;
 	cycles_until_next_instruction = 0;
+	
+	for (int i=0; i<NUM_CONTROLS; i++)
+		controls[i]=false;
 
 	video.reset();
 
@@ -127,8 +147,6 @@ void GameBoy::reset()
 	memory.write(0xFF4B, 0x00);   // WX
 	memory.write(0xFFFF, 0x00);   // IE
 
-	for (int i=0; i<NUM_CONTROLS; i++)
-		controls[i]=false;
 }
 
 int GameBoy::set_breakpoint(u16 addr)

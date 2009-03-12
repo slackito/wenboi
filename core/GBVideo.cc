@@ -18,6 +18,7 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <cstring>
 
 #include "GBVideo.h"
 #include "GameBoy.h"

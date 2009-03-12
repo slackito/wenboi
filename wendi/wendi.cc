@@ -256,7 +256,8 @@ void new_block_start(address dst, address src, Instruction::InstructionType type
 int main(int argc, char **argv)
 {
 	logger.set_log_level(Logger::TRACE);
-	GameBoy gb(argv[1]);
+	GameBoy gb;
+	gb.load_ROM(argv[1]);
 
 	list<CodeBlock> pending;
 	// pending holds empty CodeBlocks

@@ -19,6 +19,7 @@
 #define LOGGER_H
 
 #include <string>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <ctime>
@@ -45,8 +46,6 @@ class Logger: public Singleton<Logger>
 			//log_start_time = time(NULL);
 			out << "Starting log at " << static_cast<long>(log_start_time) << std::endl;
 		}
-
-		//void setOutput(std::ostream os) { out = os; }
 
 		void log(log_level level, std::string str)
 		{
@@ -104,7 +103,7 @@ class Logger: public Singleton<Logger>
 
 		void set_log_level (log_level level) { current_log_level = level; }
 	private:
-		std::ostream& out;
+		std::ostream &out;
 		log_level current_log_level;
 		time_t log_start_time;
 };
