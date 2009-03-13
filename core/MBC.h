@@ -28,6 +28,10 @@ class MBC
 	virtual u16  read16(u16 addr) const=0;
 	virtual void write (u16 addr, u8 value)=0;
 	virtual ~MBC() {};
+
+        // return a 32-bit <bank|addr> value encoding
+        // the current ROM/RAM bank and the given address
+        virtual u32 getUniqueAddress(u16 addr) const=0; 
 };
 
 

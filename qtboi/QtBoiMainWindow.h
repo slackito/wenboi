@@ -7,7 +7,12 @@
 #include <QPushButton>
 #include <QImage>
 #include <QLabel>
+#include <QStatusBar>
+#include <QTextBrowser>
+
 #include "QtBoiEmuThread.h"
+#include "QtBoiDisassemblyWindow.h"
+#include "QtBoiStatusWindow.h"
 
 class QtBoiMainWindow: public QMainWindow
 {
@@ -21,6 +26,7 @@ class QtBoiMainWindow: public QMainWindow
 		void onLoadROM();
 		void onRedraw(const uchar *buffer);
 		void onPause();
+		void onResume();
 
 	private:
 		// private functions
@@ -35,8 +41,10 @@ class QtBoiMainWindow: public QMainWindow
 
 		QWidget *centralWindow;
 		QLabel  *screen;
-		QImage  *screen_image;
-		QLabel  *status;
+		QImage  *screenImage;
+                QStatusBar *statusbar;
+                QtBoiDisassemblyWindow *disassembly;
+		QtBoiStatusWindow *status;
 
 		QAction *loadROM;
 		QAction *quit;

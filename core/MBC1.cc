@@ -112,4 +112,27 @@ void MBC1::write(u16 addr, u8 value)
 	}
 }
 
+u32 MBC1::getUniqueAddress(u16 addr) const
+{
+	if (addr <= 0x3FFF)       // ROM Bank 0
+		return addr;
+	else if (addr <= 0x7FFF)  // ROM (switchable)
+	{
+		u8 rom_bank = rom_bank_low;
+		if (mode == ROM_BANKING_MODE) rom_bank |= (ram_bank << 5);
+
+		u32 base = 16384*rom_bank;
+		return base + (addr-0x4000);
+	}
+	else // if ((addr&0xE000) == 0xA000)   //(addr >= 0xA000 && addr <= 0xBFFF)
+	{
+		if (ram_enabled)
+		{
+			u32 base = (mode == RAM_BANKING_MODE ? 8192*ram_bank : 0);
+			return (base + (addr-0xA000)) | 0x80000000;
+		}
+		else return 0;
+	}
+	return 0;
+}
 

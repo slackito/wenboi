@@ -118,7 +118,7 @@ void QtBoiEmuThread::run()
 		{
 			resetRequested = false;
 			gb.load_ROM(romName.toStdString());
-			cout << "Loaded ROM " << romName.toStdString() << endl;
+                        if (isPaused) emit emulationPaused();
 		}
 
 		if(isPaused)

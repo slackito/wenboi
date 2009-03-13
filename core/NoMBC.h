@@ -32,6 +32,7 @@ class NoMBC: public MBC
 	u16  read16(u16 addr) const;
 	void write (u16 addr, u8 value);
 
+        u32 getUniqueAddress(u16 addr) const { return addr; }
 };
 
 #endif

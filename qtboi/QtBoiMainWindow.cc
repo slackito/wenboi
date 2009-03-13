@@ -1,5 +1,3 @@
-#include "QtBoiMainWindow.h"
-
 #include <QMenu>
 #include <QMenuBar>
 #include <QToolBar>
@@ -7,31 +5,35 @@
 #include <QFileDialog>
 #include <QPushButton>
 #include <QColor>
+#include <QGroupBox>
+#include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <iostream>
+
+#include "QtBoiMainWindow.h"
 
 QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	:QMainWindow(parent), emuThread(0)
 {
-	screen_image = new QImage(160, 144, QImage::Format_Indexed8);
-	screen_image->setNumColors(7);
+	screenImage = new QImage(160, 144, QImage::Format_Indexed8);
+	screenImage->setNumColors(7);
 	// gray palette
-	//screen_image->setColor(6, qRgb(0,0,0));
-	//screen_image->setColor(5, qRgb(42,42,42));
-	//screen_image->setColor(4, qRgb(85,85,85));
-	//screen_image->setColor(3, qRgb(127,127,127));
-	//screen_image->setColor(2, qRgb(170,170,170));
-	//screen_image->setColor(1, qRgb(212,212,212));
-	//screen_image->setColor(0, qRgb(255,255,255));
+	//screenImage->setColor(6, qRgb(0,0,0));
+	//screenImage->setColor(5, qRgb(42,42,42));
+	//screenImage->setColor(4, qRgb(85,85,85));
+	//screenImage->setColor(3, qRgb(127,127,127));
+	//screenImage->setColor(2, qRgb(170,170,170));
+	//screenImage->setColor(1, qRgb(212,212,212));
+	//screenImage->setColor(0, qRgb(255,255,255));
 	
 	// greenish palette
-	screen_image->setColor(6, qRgb(64,64,64));
-	screen_image->setColor(5, qRgb(82,82,53));
-	screen_image->setColor(4, qRgb(101,101,42));
-	screen_image->setColor(3, qRgb(120,120,31));
-	screen_image->setColor(2, qRgb(139,139,21));
-	screen_image->setColor(1, qRgb(166,166,10));
-	screen_image->setColor(0, qRgb(192,192,0));
+	screenImage->setColor(6, qRgb(64,64,64));
+	screenImage->setColor(5, qRgb(82,82,53));
+	screenImage->setColor(4, qRgb(101,101,42));
+	screenImage->setColor(3, qRgb(120,120,31));
+	screenImage->setColor(2, qRgb(139,139,21));
+	screenImage->setColor(1, qRgb(166,166,10));
+	screenImage->setColor(0, qRgb(192,192,0));
 
 	emuThread = new QtBoiEmuThread(this);
 	emuThread->start();
@@ -54,8 +56,11 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	createMenu();
 	createToolbar();
 
+        statusbar = statusBar();
+
 
 	connect(emulatorCont, SIGNAL(triggered()), emuThread, SLOT(cont()));
+	connect(emulatorCont, SIGNAL(triggered()), this, SLOT(onResume()));
 	connect(emulatorStop, SIGNAL(triggered()), emuThread, SLOT(stop()));
 	connect(emulatorPause, SIGNAL(triggered()), emuThread, SLOT(pause()));
 	connect(emulatorStep, SIGNAL(triggered()), emuThread, SLOT(step()));
@@ -63,22 +68,40 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	connect(emuThread, SIGNAL(redraw(const uchar*)), this, SLOT(onRedraw(const uchar*)));
 	connect(emuThread, SIGNAL(emulationPaused()), this, SLOT(onPause()));
 
-	resize(640,480);
+	resize(800,600);
 	centralWindow = new QWidget(this);
 	setCentralWidget(centralWindow);
 
-	QVBoxLayout *vbox = new QVBoxLayout(centralWindow);
+        QHBoxLayout *topHBoxLayout = new QHBoxLayout;
+
+        QWidget *leftVBox  = new QWidget(centralWindow);
+        QWidget *rightVBox = new QWidget(centralWindow);
+	QVBoxLayout *leftVBoxLayout = new QVBoxLayout;
+	QVBoxLayout *rightVBoxLayout = new QVBoxLayout;
+        leftVBox->setLayout(leftVBoxLayout);
+        rightVBox->setLayout(rightVBoxLayout);
 
 	screen = new QLabel(centralWindow);
 	screen->resize(320,288);
+        uchar buf[160*144];
+        memset(buf, 0, 160*144);
+        onRedraw(buf);
 
-	status = new QLabel;
+	status = new QtBoiStatusWindow(centralWindow, &emuThread->gb);
 	status->setFont(QFont("courier"));
 
-	vbox->addWidget(screen);
-	vbox->addWidget(status);
+        topHBoxLayout->addWidget(leftVBox);
+        topHBoxLayout->addWidget(rightVBox);
+	leftVBoxLayout->addWidget(screen);
+	leftVBoxLayout->addWidget(status);
+        
+        disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb);
+        disassembly->setOpenLinks(false);
+	disassembly->setFont(QFont("courier"));
+        
+        rightVBoxLayout->addWidget(disassembly);
 	
-	centralWindow->setLayout(vbox);
+	centralWindow->setLayout(topHBoxLayout);
 
 }
 
@@ -129,21 +152,28 @@ void QtBoiMainWindow::onLoadROM()
 	if (filename == "") return;
 
 	emuThread->loadROM(filename);
-
+        statusbar->showMessage(tr("Loaded ROM ")+filename);
 }
 
 void QtBoiMainWindow::onRedraw(const uchar *buffer)
 {
-	uchar *pixels = screen_image->bits();
+	uchar *pixels = screenImage->bits();
 	memcpy(pixels, buffer, 160*144);
-	screen->setPixmap(QPixmap::fromImage(screen_image->scaled(320,288)));
+	screen->setPixmap(QPixmap::fromImage(screenImage->scaled(320,288)));
 }
 
 void QtBoiMainWindow::onPause()
 {
 	status->setText(QString(emuThread->gb.status_string().c_str()));
+        disassembly->gotoPC();
+        status->update();
+        statusbar->showMessage(tr("Emulation paused", "Status bar emulation paused msg"));
 }
 
+void QtBoiMainWindow::onResume()
+{
+        statusbar->showMessage(tr("Emulation running", "Status bar emulation running msg"));
+}
 
 void QtBoiMainWindow::keyPressEvent(QKeyEvent *event)
 {

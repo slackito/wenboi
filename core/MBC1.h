@@ -46,6 +46,8 @@ class MBC1: public MBC
 	u8   read  (u16 addr) const;
 	u16  read16(u16 addr) const;
 	void write (u16 addr, u8 value);
+
+        u32 getUniqueAddress(u16 addr) const;
 };
 
 #endif
