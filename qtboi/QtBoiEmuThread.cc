@@ -155,7 +155,6 @@ void QtBoiEmuThread::run()
 					break;
 			}
 
-			print_run_result(gb, status);
 			if (isPaused)
 			{
 				emit emulationPaused(); 

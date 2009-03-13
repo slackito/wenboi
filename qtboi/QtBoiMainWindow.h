@@ -17,9 +17,10 @@ class QtBoiMainWindow: public QMainWindow
 		QtBoiMainWindow(QWidget *parent=0);
 		~QtBoiMainWindow();
 
-		public slots:
-			void onLoadROM();
+	public slots:
+		void onLoadROM();
 		void onRedraw(const uchar *buffer);
+		void onPause();
 
 	private:
 		// private functions
@@ -32,8 +33,10 @@ class QtBoiMainWindow: public QMainWindow
 
 		QtBoiEmuThread *emuThread;
 
-		QLabel *centralWindow;
-		QImage *screen;
+		QWidget *centralWindow;
+		QLabel  *screen;
+		QImage  *screen_image;
+		QLabel  *status;
 
 		QAction *loadROM;
 		QAction *quit;

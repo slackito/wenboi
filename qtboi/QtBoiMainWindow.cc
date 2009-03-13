@@ -7,21 +7,31 @@
 #include <QFileDialog>
 #include <QPushButton>
 #include <QColor>
-#include <QPainter>
+#include <QVBoxLayout>
 #include <iostream>
 
 QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	:QMainWindow(parent), emuThread(0)
 {
-	screen = new QImage(160, 144, QImage::Format_Indexed8);
-	screen->setNumColors(7);
-	screen->setColor(6, qRgb(0,0,0));
-	screen->setColor(5, qRgb(42,42,42));
-	screen->setColor(4, qRgb(85,85,85));
-	screen->setColor(3, qRgb(127,127,127));
-	screen->setColor(2, qRgb(170,170,170));
-	screen->setColor(1, qRgb(212,212,212));
-	screen->setColor(0, qRgb(255,255,255));
+	screen_image = new QImage(160, 144, QImage::Format_Indexed8);
+	screen_image->setNumColors(7);
+	// gray palette
+	//screen_image->setColor(6, qRgb(0,0,0));
+	//screen_image->setColor(5, qRgb(42,42,42));
+	//screen_image->setColor(4, qRgb(85,85,85));
+	//screen_image->setColor(3, qRgb(127,127,127));
+	//screen_image->setColor(2, qRgb(170,170,170));
+	//screen_image->setColor(1, qRgb(212,212,212));
+	//screen_image->setColor(0, qRgb(255,255,255));
+	
+	// greenish palette
+	screen_image->setColor(6, qRgb(64,64,64));
+	screen_image->setColor(5, qRgb(82,82,53));
+	screen_image->setColor(4, qRgb(101,101,42));
+	screen_image->setColor(3, qRgb(120,120,31));
+	screen_image->setColor(2, qRgb(139,139,21));
+	screen_image->setColor(1, qRgb(166,166,10));
+	screen_image->setColor(0, qRgb(192,192,0));
 
 	emuThread = new QtBoiEmuThread(this);
 	emuThread->start();
@@ -51,11 +61,25 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	connect(emulatorStep, SIGNAL(triggered()), emuThread, SLOT(step()));
 	connect(emulatorReset, SIGNAL(triggered()), emuThread, SLOT(reset()));
 	connect(emuThread, SIGNAL(redraw(const uchar*)), this, SLOT(onRedraw(const uchar*)));
+	connect(emuThread, SIGNAL(emulationPaused()), this, SLOT(onPause()));
 
 	resize(640,480);
-	centralWindow = new QLabel(this);
+	centralWindow = new QWidget(this);
 	setCentralWidget(centralWindow);
-	centralWindow->move(0,0);
+
+	QVBoxLayout *vbox = new QVBoxLayout(centralWindow);
+
+	screen = new QLabel(centralWindow);
+	screen->resize(320,288);
+
+	status = new QLabel;
+	status->setFont(QFont("courier"));
+
+	vbox->addWidget(screen);
+	vbox->addWidget(status);
+	
+	centralWindow->setLayout(vbox);
+
 }
 
 QtBoiMainWindow::~QtBoiMainWindow()
@@ -110,10 +134,16 @@ void QtBoiMainWindow::onLoadROM()
 
 void QtBoiMainWindow::onRedraw(const uchar *buffer)
 {
-	uchar *pixels = screen->bits();
+	uchar *pixels = screen_image->bits();
 	memcpy(pixels, buffer, 160*144);
-	centralWindow->setPixmap(QPixmap::fromImage(screen->scaled(320,288)));
+	screen->setPixmap(QPixmap::fromImage(screen_image->scaled(320,288)));
 }
+
+void QtBoiMainWindow::onPause()
+{
+	status->setText(QString(emuThread->gb.status_string().c_str()));
+}
+
 
 void QtBoiMainWindow::keyPressEvent(QKeyEvent *event)
 {
