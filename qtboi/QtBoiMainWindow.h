@@ -3,6 +3,7 @@
 
 #include <QApplication>
 #include <QMainWindow>
+#include <QKeyEvent>
 #include <QPushButton>
 #include <QImage>
 #include <QLabel>
@@ -21,7 +22,14 @@ class QtBoiMainWindow: public QMainWindow
 		void onRedraw(const uchar *buffer);
 
 	private:
+		// private functions
 		void createMenu();
+		void createToolbar();
+
+		// events
+		void keyPressEvent(QKeyEvent *event);
+		void keyReleaseEvent(QKeyEvent *event);
+
 		QtBoiEmuThread *emuThread;
 
 		QLabel *centralWindow;

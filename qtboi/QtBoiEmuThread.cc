@@ -64,6 +64,17 @@ void QtBoiEmuThread::loadROM(QString name)
 	romLoaded=true;
 }
 
+
+void QtBoiEmuThread::pressControl(GameBoy::Control c)
+{
+	gb.push_control(c);
+}
+
+void QtBoiEmuThread::releaseControl(GameBoy::Control c)
+{
+	gb.release_control(c);
+}
+
 void QtBoiEmuThread::reset()
 {
 	resetRequested=true;
@@ -95,11 +106,10 @@ void QtBoiEmuThread::step()
 
 void QtBoiEmuThread::run()
 {
-	GameBoy gb;
-	cout << "GB created, emu thread running" << endl;
+	cout << "emu thread running" << endl;
 	
 	// wait until ROM is loaded
-	while(!romLoaded)
+	while(!romLoaded && !quitRequested)
 		msleep(500);
 
 	while(!quitRequested)
@@ -126,6 +136,7 @@ void QtBoiEmuThread::run()
 						{
 							frameCount = gb.video.get_frames_rendered();
 							emit redraw(gb.video.get_screen_buffer());
+							msleep(5);
 						}
 					}
 					break;
