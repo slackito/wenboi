@@ -144,7 +144,7 @@
 		op2.str  = toString(inm); \
 		op1.type = Instruction::REG; \
 		op1.reg  = Instruction::reg16; \
-		op2.type = Instruction::INM8; \
+		op2.type = Instruction::INM16; \
 		op2.val  = inm; \
 		break; \
 	}
