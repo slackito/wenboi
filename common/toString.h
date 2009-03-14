@@ -29,5 +29,13 @@ std::string toString(const T &object)
 	return(os.str());
 }
 
+template <class T> 
+std::string toStringHex(const T &object, int width)
+{
+	std::ostringstream os;
+	os << "0x" << std::hex << std::setw(width) << std::setfill('0') << object;
+	return(os.str());
+}
+
 #endif
 

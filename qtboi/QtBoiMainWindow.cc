@@ -3,14 +3,20 @@
 #include <QToolBar>
 #include <QString>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QPushButton>
 #include <QColor>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QFile>
+#include <QTextStream>
+
 #include <iostream>
 
 #include "QtBoiMainWindow.h"
+#include "../core/GameBoy.h"
+#include "../core/GBRom.h"
 
 QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	:QMainWindow(parent), emuThread(0)
@@ -48,6 +54,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 
 	loadROM->setShortcut(QKeySequence(tr("Ctrl+O", "File|Load ROM...")));
 	emulatorCont->setShortcut(QKeySequence(tr("F5", "Emulator|Go")));
+	emulatorPause->setShortcut(QKeySequence(tr("F6", "Emulator|Pause")));
 	emulatorStep->setShortcut(QKeySequence(tr("F7", "Debug|Step")));
 	//emulatorCont->setIcon(QIcon("../icons/player_play.svg"));
 	//emulatorPause->setIcon(QIcon("../icons/player_pause.svg"));
@@ -95,9 +102,11 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	leftVBoxLayout->addWidget(screen);
 	leftVBoxLayout->addWidget(status);
         
-        disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb);
+        disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
         disassembly->setOpenLinks(false);
 	disassembly->setFont(QFont("courier"));
+
+	connect(disassembly, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(onDisassemblyAnchorClicked(const QUrl&)));
         
         rightVBoxLayout->addWidget(disassembly);
 	
@@ -107,6 +116,9 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 
 QtBoiMainWindow::~QtBoiMainWindow()
 {
+	if (romTitle != "")
+		saveTags();
+	
 	if (emuThread) {
 		emuThread->stop();
 		emuThread->wait();
@@ -148,11 +160,37 @@ void QtBoiMainWindow::createToolbar()
 
 void QtBoiMainWindow::onLoadROM()
 {
+	saveTags();
+
 	QString filename = QFileDialog::getOpenFileName(this, tr("Load ROM"), "../roms", tr("GameBoy ROMs (*.gb *.gbc)"));
 	if (filename == "") return;
 
 	emuThread->loadROM(filename);
-        statusbar->showMessage(tr("Loaded ROM ")+filename);
+	
+	char title[12];
+	memcpy(title, emuThread->gb.rom->header.new_title, 11);
+	title[11]='\0';
+	romTitle=QString(title);
+	loadTags();
+
+        statusbar->showMessage(tr("Loaded ROM ")+filename+" ["+romTitle+"]");
+}
+
+void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
+{
+	std::cout << url.toString().toStdString() << std::endl;
+	if (url.scheme() == "gotoaddr") {
+		u32 addr = url.path().toUInt();
+		disassembly->gotoAddress(addr);
+	} 
+	else if (url.scheme() == "newtag") {
+		u32 addr = url.path().toUInt();
+		QString tag = QInputDialog::getText(this, tr("Create new tag"), tr("Enter the tag for the selected address"),
+				QLineEdit::Normal, tags[addr]);
+
+		tags[addr] = tag;
+		disassembly->refresh();
+	}
 }
 
 void QtBoiMainWindow::onRedraw(const uchar *buffer)
@@ -250,5 +288,43 @@ void QtBoiMainWindow::keyReleaseEvent(QKeyEvent *event)
 }
 
 
+
+
+void QtBoiMainWindow::loadTags()
+{
+	this->romTitle = romTitle;
+	tags.clear();
+	QFile tagsfile(romTitle+".tags");
+	if (!tagsfile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return;
+
+	QTextStream in(&tagsfile);
+	while(!in.atEnd())
+	{
+		u32 addr;
+		QString tag;
+
+		in >> addr;
+		in.skipWhiteSpace();
+		tag = in.readLine();
+
+		tags[addr] = tag;
+	}
+}
+
+void QtBoiMainWindow::saveTags()
+{
+	QFile tagsfile(romTitle+".tags");
+	if (!tagsfile.open(QIODevice::WriteOnly | QIODevice::Text))
+		return;
+
+	QTextStream out(&tagsfile);
+	QHashIterator<u32,QString> i(tags);
+	while (i.hasNext())
+	{
+		i.next();
+		out << i.key() << " " << i.value() << "\n";
+	}
+}
 
 

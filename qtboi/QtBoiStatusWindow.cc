@@ -9,6 +9,7 @@ QtBoiStatusWindow::QtBoiStatusWindow(QWidget *parent, GameBoy *gb)
 {
         setFocusPolicy(Qt::NoFocus);
         setMinimumSize(200,200);
+	setMaximumWidth(320);
 }
 
 QtBoiStatusWindow::~QtBoiStatusWindow()
@@ -54,8 +55,23 @@ void QtBoiStatusWindow::update()
         str << "<tr><td bgcolor=" << (gb->check_flag(GameBoy::HALF_CARRY_FLAG)? "#FF0000" : "#FFFFFF") << ">H</td></tr>";
         str << "<tr><td bgcolor=" << (gb->check_flag(GameBoy::CARRY_FLAG)? "#FF0000" : "#FFFFFF") << ">C</td></tr>";
 	str << "<tr><td>IME&nbsp;=&nbsp;" << int(gb->IME) << "</td></tr>";
-	str << "<tr><td>IE&nbsp;&nbsp;=&nbsp;" << int(gb->memory.read(0xFFFF, GBMemory::DONT_WATCH)) << "</td></tr>";
-	str << "<tr><td>IF&nbsp;&nbsp;=&nbsp;" << int(gb->memory.read(0xFF0F, GBMemory::DONT_WATCH)) << "</td></tr>";
+	int IE = int(gb->memory.read(0xFFFF, GBMemory::DONT_WATCH));
+	str << "<tr><td>IE&nbsp;&nbsp;=";
+	if (IE & GameBoy::IRQ_VBLANK)   str << "&nbsp;VBL";
+	if (IE & GameBoy::IRQ_LCD_STAT) str << "&nbsp;LCD";
+	if (IE & GameBoy::IRQ_TIMER)    str << "&nbsp;TIM";
+	if (IE & GameBoy::IRQ_SERIAL)   str << "&nbsp;SER";
+	if (IE & GameBoy::IRQ_JOYPAD)   str << "&nbsp;JOYP";
+	str << "</td></tr>";
+	int IF = int(gb->memory.read(0xFF0F, GBMemory::DONT_WATCH));
+	str << "<tr><td>IF&nbsp;&nbsp;=";
+	if (IF & GameBoy::IRQ_VBLANK)   str << "&nbsp;VBL";
+	if (IF & GameBoy::IRQ_LCD_STAT) str << "&nbsp;LCD";
+	if (IF & GameBoy::IRQ_TIMER)    str << "&nbsp;TIM";
+	if (IF & GameBoy::IRQ_SERIAL)   str << "&nbsp;SER";
+	if (IF & GameBoy::IRQ_JOYPAD)   str << "&nbsp;JOYP";
+	str << "</td></tr>";
+	str << "</table>";
         str << "</td></tr>";
         str << "</table></body></html>";
 

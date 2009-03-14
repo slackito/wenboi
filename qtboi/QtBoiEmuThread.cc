@@ -59,8 +59,9 @@ QtBoiEmuThread::~QtBoiEmuThread()
 
 void QtBoiEmuThread::loadROM(QString name)
 {
+	pause();
 	romName=name;
-	reset();
+	gb.load_ROM(romName.toStdString());
 	romLoaded=true;
 }
 
@@ -117,7 +118,7 @@ void QtBoiEmuThread::run()
 		if(resetRequested)
 		{
 			resetRequested = false;
-			gb.load_ROM(romName.toStdString());
+			gb.reset();
                         if (isPaused) emit emulationPaused();
 		}
 

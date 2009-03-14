@@ -9,6 +9,9 @@
 #include <QLabel>
 #include <QStatusBar>
 #include <QTextBrowser>
+#include <QString>
+#include <QUrl>
+#include <QHash>
 
 #include "QtBoiEmuThread.h"
 #include "QtBoiDisassemblyWindow.h"
@@ -24,6 +27,7 @@ class QtBoiMainWindow: public QMainWindow
 
 	public slots:
 		void onLoadROM();
+		void onDisassemblyAnchorClicked(const QUrl&);
 		void onRedraw(const uchar *buffer);
 		void onPause();
 		void onResume();
@@ -33,11 +37,17 @@ class QtBoiMainWindow: public QMainWindow
 		void createMenu();
 		void createToolbar();
 
+		void loadTags();
+		void saveTags();
+
 		// events
 		void keyPressEvent(QKeyEvent *event);
 		void keyReleaseEvent(QKeyEvent *event);
 
 		QtBoiEmuThread *emuThread;
+		
+		QString romTitle;
+		QHash<u32, QString> tags;
 
 		QWidget *centralWindow;
 		QLabel  *screen;
