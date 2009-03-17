@@ -56,26 +56,37 @@ std::string QtBoiDisassemblyWindow::operandToHtml(const Instruction::Operand &op
 std::string QtBoiDisassemblyWindow::insToHtml(const Instruction &ins)
 {
 
-	std::string result(ins.str);
-	result += " ";
-	if (ins.str.substr(0,2)=="JR")
+	std::string result;
+
+	if (ins.type == Instruction::RESET)
 	{
-		result += operandToHtml(ins.op1);
-		result += " [";
-		result += htmlLinkMem(ins.op2.val);
-		result += "]";
+		result += "RST ";
+		result += htmlLinkMem(strtol(ins.str.substr(4).c_str(), 0, 16));
 	}
-	else if (ins.str.substr(0,2)=="JP" || ins.str.substr(0,4)=="CALL")
+	else
 	{
-		result += htmlLinkMem(ins.op1.val);
-	}
-	else 
-	{
-		result += operandToHtml(ins.op1);
-		if (ins.op2.type != Instruction::NONE)
+		result += ins.str;
+		result += " ";
+		if (ins.str.substr(0,2)=="JR")
 		{
-			result += ", ";
-			result += operandToHtml(ins.op2);
+			result += operandToHtml(ins.op1);
+			result += " [";
+			result += htmlLinkMem(ins.op2.val);
+			result += "]";
+		}
+		else if ((ins.str.substr(0,2)=="JP" && ins.op1.type == Instruction::INM16)
+				|| ins.str.substr(0,4)=="CALL")
+		{
+			result += htmlLinkMem(ins.op1.val);
+		}
+		else
+		{
+			result += operandToHtml(ins.op1);
+			if (ins.op2.type != Instruction::NONE)
+			{
+				result += ", ";
+				result += operandToHtml(ins.op2);
+			}
 		}
 	}
 	return result;
