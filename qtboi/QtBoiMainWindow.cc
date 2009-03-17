@@ -58,7 +58,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	emulatorStep->setShortcut(QKeySequence(tr("F7", "Debug|Step")));
 	//emulatorCont->setIcon(QIcon("../icons/player_play.svg"));
 	//emulatorPause->setIcon(QIcon("../icons/player_pause.svg"));
-	//loadROM->setIcon(QIcon("../icons/player_eject.svg"));
+	//loadROM->setIcon(QIcon("../icons/fileopen.svg"));
 
 	createMenu();
 	createToolbar();

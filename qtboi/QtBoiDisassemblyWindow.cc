@@ -32,6 +32,9 @@ QtBoiDisassemblyWindow::QtBoiDisassemblyWindow(QWidget *parent, GameBoy *gb, QHa
 	connect(backButton, SIGNAL(clicked()), this, SLOT(historyBack()));
 	connect(forwardButton, SIGNAL(clicked()), this, SLOT(historyForward()));
 	
+	//backButton->setIcon(QIcon("../icons/go-next.svg"));
+	//forwardButton->setIcon(QIcon("../icons/go-previous.svg")); 
+	
 	QHBoxLayout *buttons = new QHBoxLayout();
 	buttons->addWidget(backButton);
 	buttons->addWidget(forwardButton);
