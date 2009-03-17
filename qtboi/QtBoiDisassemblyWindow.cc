@@ -1,15 +1,46 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cstdlib>
+
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QFont>
 
 #include "QtBoiDisassemblyWindow.h"
 #include "../common/toString.h"
 
 QtBoiDisassemblyWindow::QtBoiDisassemblyWindow(QWidget *parent, GameBoy *gb, QHash<u32,QString> *tags)
-        :gb(gb), tags(tags)
+        :QWidget(parent), gb(gb), tags(tags), history(), historyPosition(-1)
 {
-        setFocusPolicy(Qt::NoFocus);
-        setMinimumSize(500,500);
+	setFocusPolicy(Qt::NoFocus);
+
+	browser = new QTextBrowser(this);
+        browser->setOpenLinks(false);
+	browser->setFont(QFont("courier"));
+        browser->setFocusPolicy(Qt::NoFocus);
+        browser->setMinimumSize(500,500);
+	connect(browser, SIGNAL(anchorClicked(const QUrl&)), this, SIGNAL(anchorClicked(const QUrl &)));
+
+
+	backButton    = new QPushButton("Back", this);
+	backButton->setEnabled(false);
+        backButton->setFocusPolicy(Qt::NoFocus);
+	forwardButton = new QPushButton("Forward", this);
+	forwardButton->setEnabled(false);
+        forwardButton->setFocusPolicy(Qt::NoFocus);
+	connect(backButton, SIGNAL(clicked()), this, SLOT(historyBack()));
+	connect(forwardButton, SIGNAL(clicked()), this, SLOT(historyForward()));
+	
+	QHBoxLayout *buttons = new QHBoxLayout();
+	buttons->addWidget(backButton);
+	buttons->addWidget(forwardButton);
+
+	QVBoxLayout *vbox = new QVBoxLayout;
+	vbox->addWidget(browser);
+	vbox->addLayout(buttons);
+
+	setLayout(vbox);
 }
 
 QtBoiDisassemblyWindow::~QtBoiDisassemblyWindow()
@@ -127,8 +158,30 @@ void QtBoiDisassemblyWindow::gotoAddress(u16 addr)
 
         str << "</table></body></html>";
 
-        setHtml(QString(str.str().c_str()));
+        browser->setHtml(QString(str.str().c_str()));
 	currentAddress=addr;
+
+	// If there are "forward" history elements
+	// - check if we are going forwards or backwards
+	// - else, delete forward history and insert the new address
+	if (historyPosition < history.size()-1 && history[historyPosition+1] == addr)
+		historyPosition++;
+	else if (historyPosition > 0 && history[historyPosition-1] == addr)
+		historyPosition--;
+	else
+	{
+		while (history.size() > historyPosition+1)
+			history.pop_back();
+		history.push_back(addr);
+		historyPosition++;
+	}
+
+	// enable/disable navigation buttons
+	if (historyPosition >= 1) backButton->setEnabled(true);
+	else backButton->setEnabled(false);
+
+	if (historyPosition >= 0 && historyPosition < history.size()-1) forwardButton->setEnabled(true);
+	else forwardButton->setEnabled(false);
 }
 
 void QtBoiDisassemblyWindow::gotoPC()
@@ -139,6 +192,18 @@ void QtBoiDisassemblyWindow::gotoPC()
 void QtBoiDisassemblyWindow::refresh()
 {
         gotoAddress(currentAddress);
+}
+
+void QtBoiDisassemblyWindow::historyBack()
+{
+	if (historyPosition >= 1)
+		gotoAddress(history[historyPosition-1]);
+}
+
+void QtBoiDisassemblyWindow::historyForward()
+{
+	if (historyPosition < history.size()-1)
+		gotoAddress(history[historyPosition+1]);
 }
 
 

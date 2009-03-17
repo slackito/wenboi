@@ -103,8 +103,6 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	leftVBoxLayout->addWidget(status);
         
         disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
-        disassembly->setOpenLinks(false);
-	disassembly->setFont(QFont("courier"));
 
 	connect(disassembly, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(onDisassemblyAnchorClicked(const QUrl&)));
         

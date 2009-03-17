@@ -2,11 +2,14 @@
 #define QTBOIDISASSEMBLYWINDOW_H
 
 #include <QTextBrowser>
+#include <QPushButton>
 #include <QString>
 #include <QHash>
+#include <QList>
+#include <QUrl>
 #include "../core/GameBoy.h"
 
-class QtBoiDisassemblyWindow: public QTextBrowser
+class QtBoiDisassemblyWindow: public QWidget
 {
         Q_OBJECT
 
@@ -18,13 +21,26 @@ class QtBoiDisassemblyWindow: public QTextBrowser
                 void gotoPC();
 		void refresh();
 
+	public slots:
+		void historyBack();
+		void historyForward();
+
+	signals:
+		void anchorClicked(const QUrl & link);
+
         private:
 		std::string insToHtml(const Instruction &ins);
 		std::string operandToHtml(const Instruction::Operand &ins);
 		std::string htmlLinkMem(u32 addr);
+
+		QTextBrowser *browser;
+		QPushButton *backButton, *forwardButton;
+
                 GameBoy *gb;
 		QString romTitle;
 		QHash<u32, QString> *tags;
+		QList<u32> history;
+		int historyPosition;
 
 		u16 currentAddress;
 
