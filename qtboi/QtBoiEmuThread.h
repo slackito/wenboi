@@ -13,7 +13,7 @@ class QtBoiEmuThread: public QThread
     GameBoy gb;
     GameBoy::run_status status;
     bool isPaused;
-    int frameCount;
+    unsigned int frameCount;
 
     QtBoiEmuThread(QObject *parent);
     ~QtBoiEmuThread();

@@ -415,10 +415,10 @@ void GBVideo::draw()
 						if (newscreen[line_base+screen_x+x]==0 ||
 								check_bit(v[i].flags,7)==false)
 						{
-							newscreen[line_base+screen_x+x] = color | (pal_num + 1 << 4);
+							newscreen[line_base+screen_x+x] = color | (pal_num + (1 << 4));
 						}
 					}
-					//logger.trace(pal_num + 1 << 4);
+					//logger.trace(pal_num + (1 << 4));
 				}
 
 				cur_x = v[i].x;

@@ -299,8 +299,8 @@ int main(int argc, char **argv)
 				{
 					address src = start+2*i;
 					address dst = gb.memory.read16(src);
-					list<CodeBlock>::iterator i = find_block(pending, dst);
-					if (i == pending.end())
+					list<CodeBlock>::iterator it = find_block(pending, dst);
+					if (it == pending.end())
 					{
 						logger.trace("jump table dst block at 0x",std::hex, dst);
 						pending.push_back(CodeBlock(dst));
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 					}
 					else
 					{
-						i->add_xref(src, Instruction::JUMP_TABLE_JUMP);
+						it->add_xref(src, Instruction::JUMP_TABLE_JUMP);
 					}
 				}
 			}

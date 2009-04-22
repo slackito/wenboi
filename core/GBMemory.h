@@ -18,6 +18,8 @@
 #ifndef GBMEMORY_H
 #define GBMEMORY_H
 
+#pragma warning(disable:4351)
+
 #include "../common/sized_types.h"
 #include <map>
 

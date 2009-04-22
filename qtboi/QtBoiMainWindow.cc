@@ -21,7 +21,7 @@
 QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	:QMainWindow(parent), emuThread(0)
 {
-	screenImage = new QImage(160, 144, QImage::Format_Indexed8);
+	screenImage = new QImage(160, 144, QImage::Format_RGB32);
 	screenImage->setNumColors(7);
 	// gray palette
 	//screenImage->setColor(6, qRgb(0,0,0));
@@ -33,6 +33,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	//screenImage->setColor(0, qRgb(255,255,255));
 	
 	// greenish palette
+	/*
 	screenImage->setColor(6, qRgb(64,64,64));
 	screenImage->setColor(5, qRgb(82,82,53));
 	screenImage->setColor(4, qRgb(101,101,42));
@@ -40,6 +41,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	screenImage->setColor(2, qRgb(139,139,21));
 	screenImage->setColor(1, qRgb(166,166,10));
 	screenImage->setColor(0, qRgb(192,192,0));
+	*/
 
 	emuThread = new QtBoiEmuThread(this);
 	emuThread->start();
@@ -193,8 +195,13 @@ void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
 
 void QtBoiMainWindow::onRedraw(const uchar *buffer)
 {
-	uchar *pixels = screenImage->bits();
-	memcpy(pixels, buffer, 160*144);
+	uint *pixels = reinterpret_cast<uint*>(screenImage->bits());
+	//memcpy(pixels, buffer, 160*144);
+	for (int y=0; y<144; y++)
+		for (int x=0; x<160; x++) {
+			unsigned int val = 255-buffer[160*y+x]*42;
+			pixels[160*y+x]=(val<<16)|(val<<8)|val;
+		}
 	screen->setPixmap(QPixmap::fromImage(screenImage->scaled(320,288)));
 }
 

@@ -18,7 +18,6 @@
 #include "CodeBlock.h"
 
 #include <algorithm>
-#include <ext/functional>
 
 CodeBlock::CodeBlock(address start): //< creates an empty CodeBlock 
 	type(BLOCK),
@@ -37,17 +36,17 @@ CodeBlock::CodeBlock(CodeBlock &block, address addr): //< removes [addr,end[ fro
 	xrefs(),
 	name()
 {
-	using std::bind2nd;
-	using __gnu_cxx::select1st;
-	using std::equal_to;
 	block.end = addr;
 
-	// HAHA! I'M USING STL EXTENSIONS!!!1
-	DisassemblyIterator first = std::find_if(block.disassembly.begin(),
-			block.disassembly.end(),
-			compose1(bind2nd(equal_to<address>(), addr),
-				select1st<DisassemblyItem>()));
-	DisassemblyIterator tmp = first;
+	DisassemblyIterator tmp;
+	for (tmp=block.disassembly.begin(); tmp!=block.disassembly.end(); ++tmp)
+	{
+		if (tmp->first == addr)
+			break;
+	}
+	
+	DisassemblyIterator first=tmp;
+	
 	this->add_xref((--tmp)->first, Instruction::OTHER);
 	DisassemblyIterator last  = block.disassembly.end();
 	
