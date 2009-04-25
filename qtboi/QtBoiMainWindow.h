@@ -35,6 +35,8 @@ class QtBoiMainWindow: public QMainWindow
 		void onScalingNone();
 		void onScalingQImage();
 		void onScalingScale2X();
+		void onViewDisassemblyWindow();
+		void onViewStatusWindow();
 
 	private:
 		enum ScalingMethod {SCALING_NONE, SCALING_QIMAGE, SCALING_SCALE2X};
@@ -43,6 +45,7 @@ class QtBoiMainWindow: public QMainWindow
 		// private functions
 		void scale2x(const QImage *src, QImage *dst);
 
+		void createActions();
 		void createMenu();
 		void createToolbar();
 
@@ -74,6 +77,9 @@ class QtBoiMainWindow: public QMainWindow
 		QAction *emulatorStop;
 		QAction *emulatorStep;
 		QAction *emulatorReset;
+
+		QAction *viewDisassemblyWindow;
+		QAction *viewStatusWindow;
 
 		QActionGroup *scalingGroup;
 		QAction *scalingNone;

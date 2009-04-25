@@ -38,7 +38,65 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 
 	emuThread = new QtBoiEmuThread(this);
 	emuThread->start();
+	connect(emuThread, SIGNAL(redraw(const uchar*)), this, SLOT(onRedraw(const uchar*)));
+	connect(emuThread, SIGNAL(emulationPaused()), this, SLOT(onPause()));
 
+	createActions();
+	createMenu();
+	createToolbar();
+    statusbar = statusBar();
+
+	//resize(800,600);
+	centralWindow = new QWidget(this);
+	setCentralWidget(centralWindow);
+
+    QHBoxLayout *topHBoxLayout = new QHBoxLayout;
+
+    QWidget *leftVBox  = new QWidget(centralWindow);
+    QWidget *rightVBox = new QWidget(centralWindow);
+	QVBoxLayout *leftVBoxLayout = new QVBoxLayout;
+	QVBoxLayout *rightVBoxLayout = new QVBoxLayout;
+    leftVBox->setLayout(leftVBoxLayout);
+    rightVBox->setLayout(rightVBoxLayout);
+
+	screen = new QLabel(centralWindow);
+	status = new QtBoiStatusWindow(centralWindow, &emuThread->gb);
+	status->setFont(QFont("courier"));
+
+    topHBoxLayout->addWidget(leftVBox);
+    topHBoxLayout->addWidget(rightVBox);
+	leftVBoxLayout->addWidget(screen);
+	leftVBoxLayout->addWidget(status);
+        
+    disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
+	connect(disassembly, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(onDisassemblyAnchorClicked(const QUrl&)));
+    rightVBoxLayout->addWidget(disassembly);
+
+	centralWindow->setLayout(topHBoxLayout);
+
+	// draw blank screen, set default visibility for subwindows
+	onViewDisassemblyWindow();
+	onViewStatusWindow();
+    uchar buf[160*144];
+    memset(buf, 0, 160*144);
+    onRedraw(buf);
+}
+
+QtBoiMainWindow::~QtBoiMainWindow()
+{
+	if (romTitle != "")
+		saveTags();
+	
+	if (emuThread) {
+		emuThread->stop();
+		emuThread->wait();
+		delete emuThread;
+	}
+}
+
+
+void QtBoiMainWindow::createActions()
+{
 	loadROM       = new QAction(tr("&Load ROM..."), this);
 	quit          = new QAction(tr("&Quit"), this);
 	emulatorPause = new QAction(tr("&Pause"), this);
@@ -47,6 +105,13 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	emulatorStep  = new QAction(tr("St&ep"), this);
 	emulatorReset = new QAction(tr("&Reset"), this);
 	
+	viewDisassemblyWindow = new QAction(tr("&Disassembly window"), this);
+	viewStatusWindow      = new QAction(tr("&Status window"), this);
+	viewDisassemblyWindow->setCheckable(true);
+	viewStatusWindow->setCheckable(true);
+	viewDisassemblyWindow->setChecked(true);
+	viewStatusWindow->setChecked(true);
+
 	scalingGroup   = new QActionGroup(this);
 	scalingNone    = new QAction(tr("&None"), scalingGroup);
 	scalingQImage  = new QAction(tr("&QImage"), scalingGroup);
@@ -65,71 +130,19 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	//emulatorPause->setIcon(QIcon("../icons/player_pause.svg"));
 	//loadROM->setIcon(QIcon("../icons/fileopen.svg"));
 
-	createMenu();
-	createToolbar();
-
-    statusbar = statusBar();
-
 	connect(emulatorCont, SIGNAL(triggered()), emuThread, SLOT(cont()));
 	connect(emulatorCont, SIGNAL(triggered()), this, SLOT(onResume()));
 	connect(emulatorStop, SIGNAL(triggered()), emuThread, SLOT(stop()));
 	connect(emulatorPause, SIGNAL(triggered()), emuThread, SLOT(pause()));
 	connect(emulatorStep, SIGNAL(triggered()), emuThread, SLOT(step()));
 	connect(emulatorReset, SIGNAL(triggered()), emuThread, SLOT(reset()));
-	connect(emuThread, SIGNAL(redraw(const uchar*)), this, SLOT(onRedraw(const uchar*)));
-	connect(emuThread, SIGNAL(emulationPaused()), this, SLOT(onPause()));
+	connect(viewDisassemblyWindow, SIGNAL(triggered()), this, SLOT(onViewDisassemblyWindow()));
+	connect(viewStatusWindow, SIGNAL(triggered()), this, SLOT(onViewStatusWindow()));
 	connect(scalingNone, SIGNAL(triggered()), this, SLOT(onScalingNone()));
 	connect(scalingQImage, SIGNAL(triggered()), this, SLOT(onScalingQImage()));
 	connect(scalingScale2X, SIGNAL(triggered()), this, SLOT(onScalingScale2X()));
-
-	resize(800,600);
-	centralWindow = new QWidget(this);
-	setCentralWidget(centralWindow);
-
-    QHBoxLayout *topHBoxLayout = new QHBoxLayout;
-
-    QWidget *leftVBox  = new QWidget(centralWindow);
-    QWidget *rightVBox = new QWidget(centralWindow);
-	QVBoxLayout *leftVBoxLayout = new QVBoxLayout;
-	QVBoxLayout *rightVBoxLayout = new QVBoxLayout;
-    leftVBox->setLayout(leftVBoxLayout);
-    rightVBox->setLayout(rightVBoxLayout);
-
-	screen = new QLabel(centralWindow);
-	screen->resize(320,288);
-    uchar buf[160*144];
-    memset(buf, 0, 160*144);
-    onRedraw(buf);
-
-	status = new QtBoiStatusWindow(centralWindow, &emuThread->gb);
-	status->setFont(QFont("courier"));
-
-    topHBoxLayout->addWidget(leftVBox);
-    topHBoxLayout->addWidget(rightVBox);
-	leftVBoxLayout->addWidget(screen);
-	leftVBoxLayout->addWidget(status);
-        
-    disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
-
-	connect(disassembly, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(onDisassemblyAnchorClicked(const QUrl&)));
-        
-    rightVBoxLayout->addWidget(disassembly);
-	
-	centralWindow->setLayout(topHBoxLayout);
-
 }
 
-QtBoiMainWindow::~QtBoiMainWindow()
-{
-	if (romTitle != "")
-		saveTags();
-	
-	if (emuThread) {
-		emuThread->stop();
-		emuThread->wait();
-		delete emuThread;
-	}
-}
 
 void QtBoiMainWindow::createMenu()
 {
@@ -140,6 +153,8 @@ void QtBoiMainWindow::createMenu()
 
 	QMenu *view;
 	view = menuBar()->addMenu(tr("&View"));
+	view->addAction(viewDisassemblyWindow);
+	view->addAction(viewStatusWindow);
 
 	QMenu *viewScalingMethod;
 	viewScalingMethod = view->addMenu(tr("&Scaling method"));
@@ -327,6 +342,25 @@ void QtBoiMainWindow::onScalingScale2X()
 {
 	scalingMethod = SCALING_SCALE2X;
 }
+
+void QtBoiMainWindow::onViewDisassemblyWindow()
+{
+	if (viewDisassemblyWindow->isChecked()) {
+		disassembly->show();
+	} else {
+		disassembly->hide();
+	}
+}
+
+void QtBoiMainWindow::onViewStatusWindow()
+{
+	if (viewStatusWindow->isChecked()) {
+		status->show();
+	} else {
+		status->hide();
+	}
+}
+
 
 void QtBoiMainWindow::onPause()
 {

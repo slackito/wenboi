@@ -39,7 +39,7 @@ class Logger: public Singleton<Logger>
 		};
 
 		Logger(): 
-			out(std::cerr), 
+			out(std::ofstream("wenboi.log")), 
 			current_log_level(WARNING),
 			log_start_time(time(NULL))
 		{
