@@ -1,5 +1,7 @@
-#include "QtBoiEmuThread.h"
 #include <iostream>
+#include "QtBoiEmuThread.h"
+
+#include "../common/Logger.h"
 
 using std::cout;
 using std::endl;
@@ -107,7 +109,7 @@ void QtBoiEmuThread::step()
 
 void QtBoiEmuThread::run()
 {
-	cout << "emu thread running" << endl;
+	logger.debug("emu thread running");
 	
 	// wait until ROM is loaded
 	while(!romLoaded && !quitRequested)
@@ -163,7 +165,7 @@ void QtBoiEmuThread::run()
 		}
 	}
 	
-	cout << "Exiting emulation thread" << endl;
+	logger.debug("Exiting emulation thread");
 
 }
 

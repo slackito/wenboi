@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QKeyEvent>
+#include <QActionGroup>
 #include <QPushButton>
 #include <QImage>
 #include <QLabel>
@@ -31,9 +32,17 @@ class QtBoiMainWindow: public QMainWindow
 		void onRedraw(const uchar *buffer);
 		void onPause();
 		void onResume();
+		void onScalingNone();
+		void onScalingQImage();
+		void onScalingScale2X();
 
 	private:
+		enum ScalingMethod {SCALING_NONE, SCALING_QIMAGE, SCALING_SCALE2X};
+		ScalingMethod scalingMethod;
+
 		// private functions
+		void scale2x(const QImage *src, QImage *dst);
+
 		void createMenu();
 		void createToolbar();
 
@@ -52,8 +61,10 @@ class QtBoiMainWindow: public QMainWindow
 		QWidget *centralWindow;
 		QLabel  *screen;
 		QImage  *screenImage;
-                QStatusBar *statusbar;
-                QtBoiDisassemblyWindow *disassembly;
+		QImage  *scaledImage;
+
+        QStatusBar *statusbar;
+        QtBoiDisassemblyWindow *disassembly;
 		QtBoiStatusWindow *status;
 
 		QAction *loadROM;
@@ -63,6 +74,11 @@ class QtBoiMainWindow: public QMainWindow
 		QAction *emulatorStop;
 		QAction *emulatorStep;
 		QAction *emulatorReset;
+
+		QActionGroup *scalingGroup;
+		QAction *scalingNone;
+		QAction *scalingQImage;
+		QAction *scalingScale2X;
 };
 
 

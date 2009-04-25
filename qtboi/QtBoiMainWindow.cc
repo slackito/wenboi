@@ -21,17 +21,10 @@
 QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	:QMainWindow(parent), emuThread(0)
 {
-	screenImage = new QImage(160, 144, QImage::Format_RGB32);
-	screenImage->setNumColors(7);
-	// gray palette
-	//screenImage->setColor(6, qRgb(0,0,0));
-	//screenImage->setColor(5, qRgb(42,42,42));
-	//screenImage->setColor(4, qRgb(85,85,85));
-	//screenImage->setColor(3, qRgb(127,127,127));
-	//screenImage->setColor(2, qRgb(170,170,170));
-	//screenImage->setColor(1, qRgb(212,212,212));
-	//screenImage->setColor(0, qRgb(255,255,255));
-	
+	screenImage = new QImage(160,144, QImage::Format_RGB32);
+	scaledImage = new QImage(320,288, QImage::Format_RGB32);
+	scalingMethod = SCALING_QIMAGE;
+
 	// greenish palette
 	/*
 	screenImage->setColor(6, qRgb(64,64,64));
@@ -53,6 +46,16 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	emulatorStop  = new QAction(tr("&Stop"), this);
 	emulatorStep  = new QAction(tr("St&ep"), this);
 	emulatorReset = new QAction(tr("&Reset"), this);
+	
+	scalingGroup   = new QActionGroup(this);
+	scalingNone    = new QAction(tr("&None"), scalingGroup);
+	scalingQImage  = new QAction(tr("&QImage"), scalingGroup);
+	scalingScale2X = new QAction(tr("Scale&2X"), scalingGroup);
+	scalingNone->setCheckable(true);
+	scalingQImage->setCheckable(true);
+	scalingScale2X->setCheckable(true);
+	scalingQImage->setChecked(true);
+
 
 	loadROM->setShortcut(QKeySequence(tr("Ctrl+O", "File|Load ROM...")));
 	emulatorCont->setShortcut(QKeySequence(tr("F5", "Emulator|Go")));
@@ -65,8 +68,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	createMenu();
 	createToolbar();
 
-        statusbar = statusBar();
-
+    statusbar = statusBar();
 
 	connect(emulatorCont, SIGNAL(triggered()), emuThread, SLOT(cont()));
 	connect(emulatorCont, SIGNAL(triggered()), this, SLOT(onResume()));
@@ -76,39 +78,42 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	connect(emulatorReset, SIGNAL(triggered()), emuThread, SLOT(reset()));
 	connect(emuThread, SIGNAL(redraw(const uchar*)), this, SLOT(onRedraw(const uchar*)));
 	connect(emuThread, SIGNAL(emulationPaused()), this, SLOT(onPause()));
+	connect(scalingNone, SIGNAL(triggered()), this, SLOT(onScalingNone()));
+	connect(scalingQImage, SIGNAL(triggered()), this, SLOT(onScalingQImage()));
+	connect(scalingScale2X, SIGNAL(triggered()), this, SLOT(onScalingScale2X()));
 
 	resize(800,600);
 	centralWindow = new QWidget(this);
 	setCentralWidget(centralWindow);
 
-        QHBoxLayout *topHBoxLayout = new QHBoxLayout;
+    QHBoxLayout *topHBoxLayout = new QHBoxLayout;
 
-        QWidget *leftVBox  = new QWidget(centralWindow);
-        QWidget *rightVBox = new QWidget(centralWindow);
+    QWidget *leftVBox  = new QWidget(centralWindow);
+    QWidget *rightVBox = new QWidget(centralWindow);
 	QVBoxLayout *leftVBoxLayout = new QVBoxLayout;
 	QVBoxLayout *rightVBoxLayout = new QVBoxLayout;
-        leftVBox->setLayout(leftVBoxLayout);
-        rightVBox->setLayout(rightVBoxLayout);
+    leftVBox->setLayout(leftVBoxLayout);
+    rightVBox->setLayout(rightVBoxLayout);
 
 	screen = new QLabel(centralWindow);
 	screen->resize(320,288);
-        uchar buf[160*144];
-        memset(buf, 0, 160*144);
-        onRedraw(buf);
+    uchar buf[160*144];
+    memset(buf, 0, 160*144);
+    onRedraw(buf);
 
 	status = new QtBoiStatusWindow(centralWindow, &emuThread->gb);
 	status->setFont(QFont("courier"));
 
-        topHBoxLayout->addWidget(leftVBox);
-        topHBoxLayout->addWidget(rightVBox);
+    topHBoxLayout->addWidget(leftVBox);
+    topHBoxLayout->addWidget(rightVBox);
 	leftVBoxLayout->addWidget(screen);
 	leftVBoxLayout->addWidget(status);
         
-        disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
+    disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
 
 	connect(disassembly, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(onDisassemblyAnchorClicked(const QUrl&)));
         
-        rightVBoxLayout->addWidget(disassembly);
+    rightVBoxLayout->addWidget(disassembly);
 	
 	centralWindow->setLayout(topHBoxLayout);
 
@@ -132,6 +137,15 @@ void QtBoiMainWindow::createMenu()
 	file = menuBar()->addMenu(tr("&File"));
 	file->addAction(loadROM);
 	file->addAction(quit);
+
+	QMenu *view;
+	view = menuBar()->addMenu(tr("&View"));
+
+	QMenu *viewScalingMethod;
+	viewScalingMethod = view->addMenu(tr("&Scaling method"));
+	viewScalingMethod->addAction(scalingNone);
+	viewScalingMethod->addAction(scalingQImage);
+	viewScalingMethod->addAction(scalingScale2X);
 
 	QMenu *emulator;
 	emulator = menuBar()->addMenu(tr("&Emulator"));
@@ -195,6 +209,7 @@ void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
 
 void QtBoiMainWindow::onRedraw(const uchar *buffer)
 {
+	
 	uint *pixels = reinterpret_cast<uint*>(screenImage->bits());
 	//memcpy(pixels, buffer, 160*144);
 	for (int y=0; y<144; y++)
@@ -202,7 +217,115 @@ void QtBoiMainWindow::onRedraw(const uchar *buffer)
 			unsigned int val = 255-buffer[160*y+x]*42;
 			pixels[160*y+x]=(val<<16)|(val<<8)|val;
 		}
-	screen->setPixmap(QPixmap::fromImage(screenImage->scaled(320,288)));
+
+	switch(scalingMethod){
+		case SCALING_QIMAGE:
+			screen->setPixmap(QPixmap::fromImage(screenImage->scaled(320,288)));
+			break;
+		case SCALING_SCALE2X:
+			scale2x(screenImage, scaledImage);
+			screen->setPixmap(QPixmap::fromImage(*scaledImage));
+			break;
+		case SCALING_NONE:
+		default:
+			screen->setPixmap(QPixmap::fromImage(*screenImage));
+	}
+}
+
+
+// dst size must be 2*src size
+void QtBoiMainWindow::scale2x(const QImage *src, QImage *dst)
+{
+	uint *dst_pixels = reinterpret_cast<uint*>(dst->bits());
+	const uint *src_pixels = reinterpret_cast<const uint*>(src->bits());
+	int src_w = src->width();
+	int src_h = src->height();
+	// scale2x
+	for (int y=0; y < src_h; y++) {
+		for (int x=0; x < src_w; x++) {
+			uint A,B,C,D,E,F,G,H,I,E0,E1,E2,E3;
+			E=src_pixels[src_w*y+x];
+			if (x > 0) {
+				D=src_pixels[src_w*y+(x-1)];
+				if (y > 0) {
+					A = src_pixels[src_w*(y-1)+(x-1)];
+					B = src_pixels[src_w*(y-1)+x];
+				} else {
+					A = D;
+					B = D;
+				}
+				if (y < src_h-1) {
+					G = src_pixels[src_w*(y+1)+(x-1)];
+					H = src_pixels[src_w*(y+1)+x];
+				} else {
+					G = D;
+					H = D;
+				}
+			} else { // x==0
+				D=E;
+				if (y > 0) {
+					A = src_pixels[src_w*(y-1)];
+					B = A;
+				} else {
+					A = D;
+					B = D;
+				}
+				if (y < src_h-1) {
+					G = src_pixels[src_w*(y+1)];
+					H = G;
+				} else {
+					G = D;
+					H = D;
+				}
+			}
+			if (x < src_w-1) {
+				F = src_pixels[src_w*y+(x+1)];
+				if (y > 0) C = src_pixels[src_w*(y-1)+(x+1)];
+				else C = src_pixels[src_w*y+(x+1)];
+				if (y < src_h-1) I = src_pixels[src_w*(y+1)+(x+1)];
+				else I = src_pixels[src_w*y+(x+1)];
+			} else { // x==right border
+				F = E;
+				if (y > 0) C = src_pixels[src_w*(y-1)+x];
+				else C = F;
+				if (y < src_h-1) I = src_pixels[src_w*(y+1)+x];
+				else I = F;
+			}
+			if (B != H && D != F) {
+				E0 = D == B ? D : E;
+				E1 = B == F ? F : E;
+				E2 = D == H ? D : E;
+				E3 = H == F ? F : E;
+			} else {
+				E0 = E;
+				E1 = E;
+				E2 = E;
+				E3 = E;
+			}
+			
+			int dst_offset = dst->width()*2*y+2*x;
+			dst_pixels[dst_offset]     = (E0 << 16) | (E0 << 8) | E0;
+			dst_pixels[dst_offset+1]   = (E1 << 16) | (E1 << 8) | E1;
+			dst_pixels[dst_offset+320] = (E2 << 16) | (E2 << 8) | E2;
+			dst_pixels[dst_offset+321] = (E3 << 16) | (E3 << 8) | E3;
+		}
+	}
+	screen->setPixmap(QPixmap::fromImage(*screenImage));
+}
+
+void QtBoiMainWindow::onScalingNone()
+{
+	scalingMethod = SCALING_NONE;
+}
+				
+void QtBoiMainWindow::onScalingQImage()
+{
+	scalingMethod = SCALING_QIMAGE;
+}
+
+void QtBoiMainWindow::onScalingScale2X()
+{
+	scalingMethod = SCALING_SCALE2X;
 }
 
 void QtBoiMainWindow::onPause()
