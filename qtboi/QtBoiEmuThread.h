@@ -33,6 +33,7 @@ class QtBoiEmuThread: public QThread
   
   signals:
     void emulationPaused();
+	void breakpointReached(uint addr);
     void redraw(const uchar *buffer);
 
   private:

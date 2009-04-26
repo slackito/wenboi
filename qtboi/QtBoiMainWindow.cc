@@ -220,6 +220,24 @@ void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
 		tags[addr] = tag;
 		disassembly->refresh();
 	}
+    else if (url.scheme() == "togglebp") {
+        u32 addr = url.path().toUInt();
+        bool bpFound = false;
+        GameBoy::BreakpointMap bpmap = emuThread->gb.get_breakpoints();
+        for (GameBoy::BreakpointMap::iterator i=bpmap.begin(); i != bpmap.end(); i++) {
+            if (i->second.addr == addr) {
+                emuThread->gb.delete_breakpoint(i->first);
+                bpFound = true;
+                break;
+            }
+        }
+        if (!bpFound) {
+            emuThread->gb.set_breakpoint(addr);
+            std::cout << "bp set at 0x" << std::hex << addr << std::endl;
+        }
+        disassembly->refresh();
+        status->update();
+    }
 }
 
 void QtBoiMainWindow::onRedraw(const uchar *buffer)

@@ -139,9 +139,13 @@ void QtBoiEmuThread::run()
 						{
 							frameCount = gb.video.get_frames_rendered();
 							emit redraw(gb.video.get_screen_buffer());
-							msleep(5);
+							//msleep(5);
 						}
 					}
+                    if (status == GameBoy::BREAKPOINT) {
+                        emit breakpointReached(gb.regs.PC);
+                        isPaused=true;
+                    }
 					break;
 				case STEP:
 					do

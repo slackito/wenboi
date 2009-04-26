@@ -68,6 +68,17 @@ class GameBoy
 			IRQ_JOYPAD   = 0x10,
 		};
 
+		struct Breakpoint {
+			int addr;
+			bool enabled;
+
+			Breakpoint(int a, bool e): addr(a), enabled(e) {}
+			Breakpoint(): addr(-1), enabled(false) {}
+		};
+
+		typedef std::map<int, Breakpoint> BreakpointMap;
+		
+
 		// Constructors / destructors
 		GameBoy(GameBoyType type=GAMEBOY);
 		~GameBoy();
@@ -92,6 +103,7 @@ class GameBoy
 		void delete_breakpoint (int id);
 		void enable_breakpoint (int id);
 		void disable_breakpoint(int id);
+		const BreakpointMap get_breakpoints() const { return breakpoints; }
 
 		std::string status_string();
 		Instruction disassemble_opcode(u16 addr);
@@ -177,17 +189,6 @@ class GameBoy
 
 		// free ROM (used in destructor and load_rom)
 		void free_ROM();
-		
-		// debug things
-		struct Breakpoint {
-			int addr;
-			bool enabled;
-
-			Breakpoint(int a, bool e): addr(a), enabled(e) {}
-			Breakpoint(): addr(-1), enabled(false) {}
-		};
-
-		typedef std::map<int, Breakpoint> BreakpointMap;
 		
 		BreakpointMap breakpoints;
 		int last_breakpoint_id;
