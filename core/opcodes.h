@@ -260,10 +260,6 @@
 		break;
 
 
-// TODO: Check which of GBCPUman.pdf or
-// worldofspectrum z80 reference is correct
-//set_flag_if(bit7, CARRY_FLAG);
-//
 #define RLC_reg(opcode, reg) \
 	case opcode: { \
 		u8 bit7 = regs.reg >> 7; \
@@ -271,6 +267,7 @@
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
+        set_flag_if(bit7, CARRY_FLAG); \
 		cycles_until_next_instruction = 8; \
 		break; \
 	}
@@ -287,10 +284,6 @@
 		break; \
 	}
 
-// TODO: Check which of GBCPUman.pdf or
-// worldofspectrum z80 reference is correct
-//set_flag_if(bit7, CARRY_FLAG);
-//
 #define RRC_reg(opcode, reg) \
 	case opcode: { \
 		u8 bit0 = regs.reg & 1; \
@@ -298,6 +291,7 @@
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
+        set_flag_if(bit0, CARRY_FLAG); \
 		cycles_until_next_instruction = 8; \
 		break; \
 	}

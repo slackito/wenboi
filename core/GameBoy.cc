@@ -466,10 +466,7 @@ GameBoy::run_status GameBoy::run_cycle()
 						set_flag_if(regs.A == 0, ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
-						// TODO: Check which of GBCPUman.pdf or
-						// worldofspectrum z80 reference is correct
-						//
-						//set_flag_if(bit7, CARRY_FLAG);
+						set_flag_if(bit7, CARRY_FLAG);
 						cycles_until_next_instruction = 4; 
 						break;
 					}
@@ -493,10 +490,7 @@ GameBoy::run_status GameBoy::run_cycle()
 						set_flag_if(regs.A == 0, ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
-						// TODO: Check which of GBCPUman.pdf or
-						// worldofspectrum z80 reference is correct
-						//
-						//set_flag_if(bit0, CARRY_FLAG);
+						set_flag_if(bit0, CARRY_FLAG);
 						cycles_until_next_instruction = 4; 
 						break;
 					}
