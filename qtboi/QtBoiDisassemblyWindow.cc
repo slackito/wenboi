@@ -6,6 +6,8 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFont>
+#include <QInputDialog>
+#include <QStringList>
 
 #include "QtBoiDisassemblyWindow.h"
 #include "../common/toString.h"
@@ -19,7 +21,7 @@ QtBoiDisassemblyWindow::QtBoiDisassemblyWindow(QWidget *parent, GameBoy *gb, QHa
     browser->setOpenLinks(false);
     browser->setFont(QFont("courier"));
     browser->setFocusPolicy(Qt::NoFocus);
-    browser->setMinimumSize(500,500);
+    browser->setMinimumSize(700,500);
     connect(browser, SIGNAL(anchorClicked(const QUrl&)), this, SIGNAL(anchorClicked(const QUrl &)));
 
 
@@ -29,8 +31,12 @@ QtBoiDisassemblyWindow::QtBoiDisassemblyWindow(QWidget *parent, GameBoy *gb, QHa
     forwardButton = new QPushButton("Forward", this);
     forwardButton->setEnabled(false);
     forwardButton->setFocusPolicy(Qt::NoFocus);
+    gotoButton    = new QPushButton("Go to...", this);
+    gotoButton->setFocusPolicy(Qt::NoFocus);
+    gotoButton->setEnabled(false);
     connect(backButton, SIGNAL(clicked()), this, SLOT(historyBack()));
     connect(forwardButton, SIGNAL(clicked()), this, SLOT(historyForward()));
+    connect(gotoButton, SIGNAL(clicked()), this, SLOT(onGotoButton()));
 
     //backButton->setIcon(QIcon("../icons/go-next.svg"));
     //forwardButton->setIcon(QIcon("../icons/go-previous.svg")); 
@@ -38,6 +44,7 @@ QtBoiDisassemblyWindow::QtBoiDisassemblyWindow(QWidget *parent, GameBoy *gb, QHa
     QHBoxLayout *buttons = new QHBoxLayout();
     buttons->addWidget(backButton);
     buttons->addWidget(forwardButton);
+    buttons->addWidget(gotoButton);
 
     QVBoxLayout *vbox = new QVBoxLayout;
     vbox->addWidget(browser);
@@ -56,7 +63,7 @@ std::string QtBoiDisassemblyWindow::htmlLinkMem(u32 addr)
     result += toString(addr);
     result += "\">";
     if (tags->value(addr) != "")
-        result += tags->value(addr).toStdString();
+        result += tags->value(addr).split("#").at(0).toStdString();
     else
         result += toStringHex(addr, 4);
     result += "</a>";
@@ -147,7 +154,8 @@ void QtBoiDisassemblyWindow::gotoAddress(u16 addr)
 
     str << "<html><head><title>Disassembly</title></head><body>";
     str << "<table cellpadding=0 cellspacing=0>";
-    str << "<tr bgcolor=#c0ffc0><td width=25%>Labels</td><td>&nbsp;BP&nbsp;</td><td width=15%>Addr</td><td width=15%>Opcodes</td><td>Instruction</td></tr>";
+    str << "<tr bgcolor=#c0ffc0><td width=25%>Labels</td><td>&nbsp;BP&nbsp;</td><td>&nbsp;Addr&nbsp;</td>"
+           "<td>&nbsp;Opcodes&nbsp;</td><td>Instruction</td><td>Comments</td></tr>";
 
     bool hilightBG=true;
 
@@ -162,18 +170,23 @@ void QtBoiDisassemblyWindow::gotoAddress(u16 addr)
             }
         }
 
+        QStringList tag_comment = tags->value(pos, "#").split("#");
+        QString tag     = tag_comment.at(0);
+        QString comment = tag_comment.at(1);
+
         Instruction ins(gb->disassemble_opcode(pos));
         str << "<tr bgcolor=" << (isBP? "#ff0000" : (pos == gb->regs.PC ? "#ffc0c0" : (hilightBG ? "#d0d0d0" : "#ffffff"))) << ">" <<
-            "<td>" << tags->value(pos).toStdString() << "</td>" <<
+            "<td>" << tag.toStdString() << (tag=="" ? "" : ":")<<"&nbsp;</td>" <<
             "<td>&nbsp;<a href=\"togglebp:" << std::dec << pos << "\">"<< (isBP? "#" : "&nbsp;") <<"</a>&nbsp;</font></td>" <<
-            "<td><a href=\"newtag:" << std::dec << pos << "\">0x" << std::hex << std::setw(4) << std::setfill('0') << 
-            pos << "</a></td><td>";
+            "<td><a href=\"tag:" << std::dec << pos << "\">0x" << std::hex << std::setw(4) << std::setfill('0') << 
+            pos << "</a>&nbsp;&nbsp;</td><td>";
         for (int i=0; i<ins.length; i++)
             str << std::setw(2) << int(gb->memory.read(pos+i)) << " ";
 
-        str << "</td><td>";
+        str << "&nbsp;&nbsp;</td><td>";
 
-        str << insToHtml(ins) << "</td></tr>";
+        str << insToHtml(ins) << "&nbsp;&nbsp;</td>";
+        str << "<td>" << "<a href=\"comment:" << std::dec << pos << "\">#</a>&nbsp;&nbsp;"<< comment.toStdString() << "&nbsp;&nbsp;</td></tr>";
         pos += ins.length;
 
         hilightBG = !hilightBG;
@@ -217,6 +230,13 @@ void QtBoiDisassemblyWindow::refresh()
     gotoAddress(currentAddress);
 }
 
+void QtBoiDisassemblyWindow::ready()
+{
+    gotoPC();
+    gotoButton->setEnabled(true);
+}
+
+
 void QtBoiDisassemblyWindow::historyBack()
 {
     if (historyPosition >= 1)
@@ -229,5 +249,10 @@ void QtBoiDisassemblyWindow::historyForward()
         gotoAddress(history[historyPosition+1]);
 }
 
+void QtBoiDisassemblyWindow::onGotoButton()
+{
+    QString s = QInputDialog::getText(this, tr("Go to address"), tr("Enter the address to disassemble"));
+    gotoAddress(s.toUInt(0,0));
+}
 
 

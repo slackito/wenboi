@@ -185,39 +185,43 @@ void QtBoiMainWindow::createToolbar()
 	toolbar->addAction(emulatorCont);
 	toolbar->addAction(emulatorPause);
 	toolbar->addAction(emulatorReset);
+    toolbar->addAction(emulatorStep);
 }
 
 void QtBoiMainWindow::onLoadROM()
 {
-	saveTags();
+    saveTags();
 
-	QString filename = QFileDialog::getOpenFileName(this, tr("Load ROM"), "../roms", tr("GameBoy ROMs (*.gb *.gbc)"));
-	if (filename == "") return;
+    QString filename = QFileDialog::getOpenFileName(this, tr("Load ROM"), "../roms", tr("GameBoy ROMs (*.gb *.gbc)"));
+    if (filename == "") return;
 
-	emuThread->loadROM(filename);
-	
-	char title[12];
-	memcpy(title, emuThread->gb.rom->header.new_title, 11);
-	title[11]='\0';
-	romTitle=QString(title);
-	loadTags();
+    emuThread->loadROM(filename);
 
-        statusbar->showMessage(tr("Loaded ROM ")+filename+" ["+romTitle+"]");
+    char title[12];
+    memcpy(title, emuThread->gb.rom->header.new_title, 11);
+    title[11]='\0';
+    romTitle=QString(title);
+    loadTags();
+
+    statusbar->showMessage(tr("Loaded ROM ")+filename+" ["+romTitle+"]");
+    disassembly->ready();
 }
 
 void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
 {
-	std::cout << url.toString().toStdString() << std::endl;
+	//std::cout << url.toString().toStdString() << std::endl;
 	if (url.scheme() == "gotoaddr") {
 		u32 addr = url.path().toUInt();
 		disassembly->gotoAddress(addr);
 	} 
-	else if (url.scheme() == "newtag") {
+	else if (url.scheme() == "tag") {
 		u32 addr = url.path().toUInt();
-		QString tag = QInputDialog::getText(this, tr("Create new tag"), tr("Enter the tag for the selected address"),
-				QLineEdit::Normal, tags[addr]);
-
-		tags[addr] = tag;
+        QStringList tag_comment = tags.value(addr,"#").split("#");
+        QString tag     = tag_comment.at(0);
+        QString comment = tag_comment.at(1);
+		tag = QInputDialog::getText(this, tr("Edit tag"), tr("Enter the tag for the selected address"),
+				QLineEdit::Normal, tag);
+        tags[addr] = tag+"#"+comment;
 		disassembly->refresh();
 	}
     else if (url.scheme() == "togglebp") {
@@ -233,10 +237,20 @@ void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
         }
         if (!bpFound) {
             emuThread->gb.set_breakpoint(addr);
-            std::cout << "bp set at 0x" << std::hex << addr << std::endl;
+            //std::cout << "bp set at 0x" << std::hex << addr << std::endl;
         }
         disassembly->refresh();
         status->update();
+    }
+    else if (url.scheme() == "comment") {
+		u32 addr = url.path().toUInt();
+        QStringList tag_comment = tags.value(addr,"#").split("#");
+        QString tag     = tag_comment.at(0);
+        QString comment = tag_comment.at(1);
+		comment = QInputDialog::getText(this, tr("Edit comment"), tr("Enter the comment for the selected address"),
+				QLineEdit::Normal, comment);
+        tags[addr] = tag+"#"+comment;
+		disassembly->refresh();
     }
 }
 
