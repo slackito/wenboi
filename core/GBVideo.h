@@ -61,7 +61,7 @@ class GBVideo
 
 	u32 colors[4];
 	u32 frames_rendered;
-	u8 *oldscreen, *newscreen, *screen;
+	u8 *screen, *oldscreen, *newscreen;
 
 	public:
 	enum DisplayMode {

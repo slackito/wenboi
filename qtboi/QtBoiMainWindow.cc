@@ -225,7 +225,7 @@ void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
 		disassembly->refresh();
 	}
     else if (url.scheme() == "togglebp") {
-        u32 addr = url.path().toUInt();
+        int addr = url.path().toUInt();
         bool bpFound = false;
         GameBoy::BreakpointMap bpmap = emuThread->gb.get_breakpoints();
         for (GameBoy::BreakpointMap::iterator i=bpmap.begin(); i != bpmap.end(); i++) {
