@@ -371,11 +371,11 @@ void GBVideo::draw()
 
 			//logger.trace("LY=",LY," sprites=",v.size());
 			// draw sprites
-			int cur_x = 0;
 			for (u32 i=0; i<v.size() && i<10 ; i++)
 			{
-				int screen_x = std::max(cur_x, v[i].x-8);
+				int screen_x = std::max(0, v[i].x-8);
 				int sprite_x = screen_x - (v[i].x-8);
+				int max_sprite_x = std::min(8, 168-v[i].x);
 				int sprite_y = LY - (v[i].y - 16);
 				bool mirror_x = check_bit(v[i].flags, 5);
 				bool mirror_y = check_bit(v[i].flags, 6);
@@ -404,7 +404,7 @@ void GBVideo::draw()
 				u16 current_tile_addr = 16*current_tile_index;
 				u8 current_row_low  = VRAM[current_tile_addr+2*sprite_y];
 				u8 current_row_high = VRAM[current_tile_addr+2*sprite_y+1];
-				for (int x=sprite_x; x < 8; x++)
+				for (int x=sprite_x; x < max_sprite_x; x++)
 				{
 					int mx = mirror_x? x : 7-x;
 					u8 color = ((current_row_high >> mx)&1) << 1 | 
@@ -412,8 +412,9 @@ void GBVideo::draw()
 
 					if (color != 0)
 					{
-						if (newscreen[line_base+screen_x+x]==0 ||
-								check_bit(v[i].flags,7)==false)
+						if (newscreen[line_base+screen_x+x] >> 4 == 0 &&
+								(newscreen[line_base+screen_x+x]==0 ||
+								check_bit(v[i].flags,7)==false))
 						{
 							newscreen[line_base+screen_x+x] = color | ((pal_num + 1) << 4);
 						}
@@ -421,7 +422,6 @@ void GBVideo::draw()
 					//logger.trace((pal_num + 1) << 4);
 				}
 
-				cur_x = v[i].x;
 			}
 		}	
 		// Apply pallettes to the line
