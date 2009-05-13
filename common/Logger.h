@@ -39,18 +39,20 @@ class Logger: public Singleton<Logger>
 		};
 
 		Logger(): 
-			out(std::ofstream("wenboi.log")), 
+			out(new std::ofstream("wenboi.log")), 
 			current_log_level(WARNING),
 			log_start_time(time(NULL))
 		{
 			//log_start_time = time(NULL);
-			out << "Starting log at " << static_cast<long>(log_start_time) << std::endl;
+			(*out) << "Starting log at " << static_cast<long>(log_start_time) << std::endl;
 		}
+
+                ~Logger() { delete out; }
 
 		void log(log_level level, std::string str)
 		{
 			if (level <= current_log_level)
-				out << "[" << difftime(time(NULL), log_start_time) << "] " << str << std::endl;
+				(*out) << "[" << difftime(time(NULL), log_start_time) << "] " << str << std::endl;
 		}
 		
 		#define LOGFUNC1(func, tag) template <typename T1> void func(T1 p1) \
@@ -103,7 +105,7 @@ class Logger: public Singleton<Logger>
 
 		void set_log_level (log_level level) { current_log_level = level; }
 	private:
-		std::ostream &out;
+		std::ostream *out;
 		log_level current_log_level;
 		time_t log_start_time;
 };
