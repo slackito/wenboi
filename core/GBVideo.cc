@@ -37,6 +37,7 @@ GBVideo::GBVideo(GameBoy *core):
 	screen(0),
 	oldscreen(0), newscreen(0),
 	display_mode(NORMAL),
+    background_enabled(true), window_enabled(true), sprites_enabled(true),
 	cycles_until_next_update(0)
 {
 	oldscreen = new u8[160*144];
@@ -269,7 +270,7 @@ void GBVideo::draw()
 		int line_base = 160*LY;
 
 		// Draw the background
-		if (check_bit(LCDC, 0))  // is BG display active?
+		if (background_enabled && check_bit(LCDC, 0))  // is BG display active?
 		{
 			u16 tile_map_addr  = check_bit(LCDC,3) ? 0x1C00  : 0x1800;
 			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
@@ -309,7 +310,7 @@ void GBVideo::draw()
 	
 		//logger.trace("LCDC=0x", std::hex, LCDC, " LY=", LY, " WY=", WY);
 		// Draw the window
-		if (check_bit(LCDC, 5) && LY > WY && LY < 144)  // is BG display active?
+		if (window_enabled && check_bit(LCDC, 5) && LY > WY && LY < 144)  // is BG display active?
 		{
 			u16 tile_map_addr  = check_bit(LCDC,6) ? 0x1C00  : 0x1800;
 			u16 tile_data_addr = check_bit(LCDC,4) ? 0x0000 : 0x0800;
@@ -348,7 +349,7 @@ void GBVideo::draw()
 		}
 
 		// ------- SPRITES
-		if (check_bit(LCDC, 1))
+		if (sprites_enabled && check_bit(LCDC, 1))
 		{
 			int sprite_size = (LCDC & 0x4) >> 2;
 			std::vector<Sprite> v;

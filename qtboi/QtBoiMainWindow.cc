@@ -108,8 +108,8 @@ void QtBoiMainWindow::createActions()
 	viewDisassemblyWindow = new QAction(tr("&Disassembly window"), this);
 	viewStatusWindow      = new QAction(tr("&Status window"), this);
 	viewDisassemblyWindow->setCheckable(true);
-	viewStatusWindow->setCheckable(true);
 	viewDisassemblyWindow->setChecked(true);
+	viewStatusWindow->setCheckable(true);
 	viewStatusWindow->setChecked(true);
 
 	scalingGroup   = new QActionGroup(this);
@@ -118,9 +118,18 @@ void QtBoiMainWindow::createActions()
 	scalingScale2X = new QAction(tr("Scale&2X"), scalingGroup);
 	scalingNone->setCheckable(true);
 	scalingQImage->setCheckable(true);
-	scalingScale2X->setCheckable(true);
 	scalingQImage->setChecked(true);
+	scalingScale2X->setCheckable(true);
 
+    debugVideoDrawBackground = new QAction(tr("Draw background"), this);
+    debugVideoDrawWindow     = new QAction(tr("Draw window"), this);
+    debugVideoDrawSprites    = new QAction(tr("Draw sprites"), this);
+    debugVideoDrawBackground->setCheckable(true);
+    debugVideoDrawBackground->setChecked(true);
+    debugVideoDrawWindow->setCheckable(true);
+    debugVideoDrawWindow->setChecked(true);
+    debugVideoDrawSprites->setCheckable(true);
+    debugVideoDrawSprites->setChecked(true);
 
 	loadROM->setShortcut(QKeySequence(tr("Ctrl+O", "File|Load ROM...")));
 	emulatorCont->setShortcut(QKeySequence(tr("F5", "Emulator|Go")));
@@ -141,6 +150,9 @@ void QtBoiMainWindow::createActions()
 	connect(scalingNone, SIGNAL(triggered()), this, SLOT(onScalingNone()));
 	connect(scalingQImage, SIGNAL(triggered()), this, SLOT(onScalingQImage()));
 	connect(scalingScale2X, SIGNAL(triggered()), this, SLOT(onScalingScale2X()));
+    connect(debugVideoDrawBackground, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawBackground()));
+    connect(debugVideoDrawWindow, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawWindow()));
+    connect(debugVideoDrawSprites, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawSprites()));
 }
 
 
@@ -172,6 +184,10 @@ void QtBoiMainWindow::createMenu()
 	QMenu *debug;
 	debug = menuBar()->addMenu(tr("&Debug"));
 	debug->addAction(emulatorStep);
+    QMenu *debugVideo = debug->addMenu(tr("&Video"));
+    debugVideo->addAction(debugVideoDrawBackground);
+    debugVideo->addAction(debugVideoDrawWindow);
+    debugVideo->addAction(debugVideoDrawSprites);
 
 	connect(quit, SIGNAL(triggered()), qApp, SLOT(quit()));
 	connect(loadROM, SIGNAL(triggered()), this, SLOT(onLoadROM()));
@@ -521,4 +537,18 @@ void QtBoiMainWindow::saveTags()
 	}
 }
 
+void QtBoiMainWindow::onDebugVideoDrawBackground()
+{
+    emuThread->gb.video.draw_background(debugVideoDrawBackground->isChecked());
+}
+
+void QtBoiMainWindow::onDebugVideoDrawWindow()
+{
+    emuThread->gb.video.draw_window(debugVideoDrawWindow->isChecked());
+}
+
+void QtBoiMainWindow::onDebugVideoDrawSprites()
+{
+    emuThread->gb.video.draw_sprites(debugVideoDrawSprites->isChecked());
+}
 

@@ -73,6 +73,9 @@ class GBVideo
 
 	private:
 	DisplayMode display_mode;
+    bool background_enabled;
+    bool window_enabled;
+    bool sprites_enabled;
 	
 	public:
 	int cycles_until_next_update;
@@ -98,6 +101,9 @@ class GBVideo
 	void DMA_OAM (const u16 src);
 
 	// drawing control
+    void draw_background(bool b) { background_enabled = b; }
+    void draw_window(bool b)     { window_enabled = b; }
+    void draw_sprites(bool b)    { sprites_enabled = b; }
 	void draw();
 	u32 update();
 	void set_display_mode(DisplayMode mode) { display_mode = mode; }

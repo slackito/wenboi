@@ -37,6 +37,9 @@ class QtBoiMainWindow: public QMainWindow
 		void onScalingScale2X();
 		void onViewDisassemblyWindow();
 		void onViewStatusWindow();
+        void onDebugVideoDrawBackground();
+        void onDebugVideoDrawWindow();
+        void onDebugVideoDrawSprites();
 
 	private:
 		enum ScalingMethod {SCALING_NONE, SCALING_QIMAGE, SCALING_SCALE2X};
@@ -85,6 +88,10 @@ class QtBoiMainWindow: public QMainWindow
 		QAction *scalingNone;
 		QAction *scalingQImage;
 		QAction *scalingScale2X;
+
+        QAction *debugVideoDrawBackground;
+        QAction *debugVideoDrawWindow;
+        QAction *debugVideoDrawSprites;
 };
 
 
