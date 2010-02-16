@@ -55,9 +55,16 @@ class QtBoiMainWindow: public QMainWindow
 		void loadTags();
 		void saveTags();
 
+        double now(); // in seconds
+
 		// events
 		void keyPressEvent(QKeyEvent *event);
 		void keyReleaseEvent(QKeyEvent *event);
+
+        // attributes
+        unsigned int frames_since_last_FPS_update;
+        float last_FPS_update;
+        unsigned int init_seconds;
 
 		QtBoiEmuThread *emuThread;
 		

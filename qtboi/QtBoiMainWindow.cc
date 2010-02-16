@@ -44,33 +44,33 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	createActions();
 	createMenu();
 	createToolbar();
-    statusbar = statusBar();
+	statusbar = statusBar();
 
 	//resize(800,600);
 	centralWindow = new QWidget(this);
 	setCentralWidget(centralWindow);
 
-    QHBoxLayout *topHBoxLayout = new QHBoxLayout;
+	QHBoxLayout *topHBoxLayout = new QHBoxLayout;
 
-    QWidget *leftVBox  = new QWidget(centralWindow);
-    QWidget *rightVBox = new QWidget(centralWindow);
+	QWidget *leftVBox  = new QWidget(centralWindow);
+	QWidget *rightVBox = new QWidget(centralWindow);
 	QVBoxLayout *leftVBoxLayout = new QVBoxLayout;
 	QVBoxLayout *rightVBoxLayout = new QVBoxLayout;
-    leftVBox->setLayout(leftVBoxLayout);
-    rightVBox->setLayout(rightVBoxLayout);
+	leftVBox->setLayout(leftVBoxLayout);
+	rightVBox->setLayout(rightVBoxLayout);
 
 	screen = new QLabel(centralWindow);
 	status = new QtBoiStatusWindow(centralWindow, &emuThread->gb);
 	status->setFont(QFont("courier"));
 
-    topHBoxLayout->addWidget(leftVBox);
-    topHBoxLayout->addWidget(rightVBox);
+	topHBoxLayout->addWidget(leftVBox);
+	topHBoxLayout->addWidget(rightVBox);
 	leftVBoxLayout->addWidget(screen);
 	leftVBoxLayout->addWidget(status);
-        
-    disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
+
+	disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
 	connect(disassembly, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(onDisassemblyAnchorClicked(const QUrl&)));
-    rightVBoxLayout->addWidget(disassembly);
+	rightVBoxLayout->addWidget(disassembly);
 
 	centralWindow->setLayout(topHBoxLayout);
 
@@ -80,6 +80,12 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
     uchar buf[160*144];
     memset(buf, 0, 160*144);
     onRedraw(buf);
+
+	last_FPS_update=0.0f;
+	frames_since_last_FPS_update=0;
+	struct timespec tp;
+	clock_gettime(CLOCK_REALTIME, &tp);
+	init_seconds = tp.tv_sec;
 }
 
 QtBoiMainWindow::~QtBoiMainWindow()
@@ -97,8 +103,8 @@ QtBoiMainWindow::~QtBoiMainWindow()
 
 void QtBoiMainWindow::createActions()
 {
-	loadROM       = new QAction(tr("&Load ROM..."), this);
-	quit          = new QAction(tr("&Quit"), this);
+	loadROM		  = new QAction(tr("&Load ROM..."), this);
+	quit		  = new QAction(tr("&Quit"), this);
 	emulatorPause = new QAction(tr("&Pause"), this);
 	emulatorCont  = new QAction(tr("&Go"), this);
 	emulatorStop  = new QAction(tr("&Stop"), this);
@@ -106,7 +112,7 @@ void QtBoiMainWindow::createActions()
 	emulatorReset = new QAction(tr("&Reset"), this);
 	
 	viewDisassemblyWindow = new QAction(tr("&Disassembly window"), this);
-	viewStatusWindow      = new QAction(tr("&Status window"), this);
+	viewStatusWindow	  = new QAction(tr("&Status window"), this);
 	viewDisassemblyWindow->setCheckable(true);
 	viewDisassemblyWindow->setChecked(true);
 	viewStatusWindow->setCheckable(true);
@@ -121,15 +127,15 @@ void QtBoiMainWindow::createActions()
 	scalingQImage->setChecked(true);
 	scalingScale2X->setCheckable(true);
 
-    debugVideoDrawBackground = new QAction(tr("Draw background"), this);
-    debugVideoDrawWindow     = new QAction(tr("Draw window"), this);
-    debugVideoDrawSprites    = new QAction(tr("Draw sprites"), this);
-    debugVideoDrawBackground->setCheckable(true);
-    debugVideoDrawBackground->setChecked(true);
-    debugVideoDrawWindow->setCheckable(true);
-    debugVideoDrawWindow->setChecked(true);
-    debugVideoDrawSprites->setCheckable(true);
-    debugVideoDrawSprites->setChecked(true);
+	debugVideoDrawBackground = new QAction(tr("Draw background"), this);
+	debugVideoDrawWindow	 = new QAction(tr("Draw window"), this);
+	debugVideoDrawSprites	 = new QAction(tr("Draw sprites"), this);
+	debugVideoDrawBackground->setCheckable(true);
+	debugVideoDrawBackground->setChecked(true);
+	debugVideoDrawWindow->setCheckable(true);
+	debugVideoDrawWindow->setChecked(true);
+	debugVideoDrawSprites->setCheckable(true);
+	debugVideoDrawSprites->setChecked(true);
 
 	loadROM->setShortcut(QKeySequence(tr("Ctrl+O", "File|Load ROM...")));
 	emulatorCont->setShortcut(QKeySequence(tr("F5", "Emulator|Go")));
@@ -150,9 +156,9 @@ void QtBoiMainWindow::createActions()
 	connect(scalingNone, SIGNAL(triggered()), this, SLOT(onScalingNone()));
 	connect(scalingQImage, SIGNAL(triggered()), this, SLOT(onScalingQImage()));
 	connect(scalingScale2X, SIGNAL(triggered()), this, SLOT(onScalingScale2X()));
-    connect(debugVideoDrawBackground, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawBackground()));
-    connect(debugVideoDrawWindow, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawWindow()));
-    connect(debugVideoDrawSprites, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawSprites()));
+	connect(debugVideoDrawBackground, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawBackground()));
+	connect(debugVideoDrawWindow, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawWindow()));
+	connect(debugVideoDrawSprites, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawSprites()));
 }
 
 
@@ -184,10 +190,10 @@ void QtBoiMainWindow::createMenu()
 	QMenu *debug;
 	debug = menuBar()->addMenu(tr("&Debug"));
 	debug->addAction(emulatorStep);
-    QMenu *debugVideo = debug->addMenu(tr("&Video"));
-    debugVideo->addAction(debugVideoDrawBackground);
-    debugVideo->addAction(debugVideoDrawWindow);
-    debugVideo->addAction(debugVideoDrawSprites);
+	QMenu *debugVideo = debug->addMenu(tr("&Video"));
+	debugVideo->addAction(debugVideoDrawBackground);
+	debugVideo->addAction(debugVideoDrawWindow);
+	debugVideo->addAction(debugVideoDrawSprites);
 
 	connect(quit, SIGNAL(triggered()), qApp, SLOT(quit()));
 	connect(loadROM, SIGNAL(triggered()), this, SLOT(onLoadROM()));
@@ -201,26 +207,26 @@ void QtBoiMainWindow::createToolbar()
 	toolbar->addAction(emulatorCont);
 	toolbar->addAction(emulatorPause);
 	toolbar->addAction(emulatorReset);
-    toolbar->addAction(emulatorStep);
+	toolbar->addAction(emulatorStep);
 }
 
 void QtBoiMainWindow::onLoadROM()
 {
-    saveTags();
+	saveTags();
 
-    QString filename = QFileDialog::getOpenFileName(this, tr("Load ROM"), "../roms", tr("GameBoy ROMs (*.gb *.gbc)"));
-    if (filename == "") return;
+	QString filename = QFileDialog::getOpenFileName(this, tr("Load ROM"), "../roms", tr("GameBoy ROMs (*.gb *.gbc)"));
+	if (filename == "") return;
 
-    emuThread->loadROM(filename);
+	emuThread->loadROM(filename);
 
-    char title[12];
-    memcpy(title, emuThread->gb.rom->header.new_title, 11);
-    title[11]='\0';
-    romTitle=QString(title);
-    loadTags();
+	char title[12];
+	memcpy(title, emuThread->gb.rom->header.new_title, 11);
+	title[11]='\0';
+	romTitle=QString(title);
+	loadTags();
 
-    statusbar->showMessage(tr("Loaded ROM ")+filename+" ["+romTitle+"]");
-    disassembly->ready();
+	statusbar->showMessage(tr("Loaded ROM ")+filename+" ["+romTitle+"]");
+	disassembly->ready();
 }
 
 void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
@@ -232,47 +238,55 @@ void QtBoiMainWindow::onDisassemblyAnchorClicked(const QUrl& url)
 	} 
 	else if (url.scheme() == "tag") {
 		u32 addr = url.path().toUInt();
-        QStringList tag_comment = tags.value(addr,"#").split("#");
-        QString tag     = tag_comment.at(0);
-        QString comment = tag_comment.at(1);
+		QStringList tag_comment = tags.value(addr,"#").split("#");
+		QString tag		= tag_comment.at(0);
+		QString comment = tag_comment.at(1);
 		tag = QInputDialog::getText(this, tr("Edit tag"), tr("Enter the tag for the selected address"),
 				QLineEdit::Normal, tag);
-        tags[addr] = tag+"#"+comment;
+		tags[addr] = tag+"#"+comment;
 		disassembly->refresh();
 	}
-    else if (url.scheme() == "togglebp") {
-        int addr = url.path().toUInt();
-        bool bpFound = false;
-        GameBoy::BreakpointMap bpmap = emuThread->gb.get_breakpoints();
-        for (GameBoy::BreakpointMap::iterator i=bpmap.begin(); i != bpmap.end(); i++) {
-            if (i->second.addr == addr) {
-                emuThread->gb.delete_breakpoint(i->first);
-                bpFound = true;
-                break;
-            }
-        }
-        if (!bpFound) {
-            emuThread->gb.set_breakpoint(addr);
-            //std::cout << "bp set at 0x" << std::hex << addr << std::endl;
-        }
-        disassembly->refresh();
-        status->update();
-    }
-    else if (url.scheme() == "comment") {
+	else if (url.scheme() == "togglebp") {
+		int addr = url.path().toUInt();
+		bool bpFound = false;
+		GameBoy::BreakpointMap bpmap = emuThread->gb.get_breakpoints();
+		for (GameBoy::BreakpointMap::iterator i=bpmap.begin(); i != bpmap.end(); i++) {
+			if (i->second.addr == addr) {
+				emuThread->gb.delete_breakpoint(i->first);
+				bpFound = true;
+				break;
+			}
+		}
+		if (!bpFound) {
+			emuThread->gb.set_breakpoint(addr);
+			//std::cout << "bp set at 0x" << std::hex << addr << std::endl;
+		}
+		disassembly->refresh();
+		status->update();
+	}
+	else if (url.scheme() == "comment") {
 		u32 addr = url.path().toUInt();
-        QStringList tag_comment = tags.value(addr,"#").split("#");
-        QString tag     = tag_comment.at(0);
-        QString comment = tag_comment.at(1);
+		QStringList tag_comment = tags.value(addr,"#").split("#");
+		QString tag		= tag_comment.at(0);
+		QString comment = tag_comment.at(1);
 		comment = QInputDialog::getText(this, tr("Edit comment"), tr("Enter the comment for the selected address"),
 				QLineEdit::Normal, comment);
-        tags[addr] = tag+"#"+comment;
+		tags[addr] = tag+"#"+comment;
 		disassembly->refresh();
-    }
+	}
 }
 
 void QtBoiMainWindow::onRedraw(const uchar *buffer)
 {
-	
+	frames_since_last_FPS_update++;
+	double dt = now()-last_FPS_update;
+	if (dt > 1.0) {
+		double fps = frames_since_last_FPS_update/dt;
+		statusbar->showMessage(QString("%1 FPS, t=%2").arg(fps, 0, 'f', 2).arg(now()));
+		last_FPS_update = now();
+		frames_since_last_FPS_update = 0;
+	}
+
 	uint *pixels = reinterpret_cast<uint*>(screenImage->bits());
 	//memcpy(pixels, buffer, 160*144);
 	for (int y=0; y<144; y++)
@@ -367,7 +381,7 @@ void QtBoiMainWindow::scale2x(const QImage *src, QImage *dst)
 			}
 			
 			int dst_offset = dst->width()*2*y+2*x;
-			dst_pixels[dst_offset]     = (E0 << 16) | (E0 << 8) | E0;
+			dst_pixels[dst_offset]	   = (E0 << 16) | (E0 << 8) | E0;
 			dst_pixels[dst_offset+1]   = (E1 << 16) | (E1 << 8) | E1;
 			dst_pixels[dst_offset+320] = (E2 << 16) | (E2 << 8) | E2;
 			dst_pixels[dst_offset+321] = (E3 << 16) | (E3 << 8) | E3;
@@ -421,6 +435,8 @@ void QtBoiMainWindow::onPause()
 void QtBoiMainWindow::onResume()
 {
         statusbar->showMessage(tr("Emulation running", "Status bar emulation running msg"));
+	last_FPS_update = 0;
+	frames_since_last_FPS_update = 0;
 }
 
 void QtBoiMainWindow::keyPressEvent(QKeyEvent *event)
@@ -537,6 +553,14 @@ void QtBoiMainWindow::saveTags()
 	}
 }
 
+double QtBoiMainWindow::now()
+{
+	struct timespec tp;
+	clock_gettime(CLOCK_REALTIME, &tp);
+	return (tp.tv_sec-init_seconds) + (tp.tv_nsec*1e-9);
+}
+
+
 void QtBoiMainWindow::onDebugVideoDrawBackground()
 {
     emuThread->gb.video.draw_background(debugVideoDrawBackground->isChecked());
@@ -544,11 +568,11 @@ void QtBoiMainWindow::onDebugVideoDrawBackground()
 
 void QtBoiMainWindow::onDebugVideoDrawWindow()
 {
-    emuThread->gb.video.draw_window(debugVideoDrawWindow->isChecked());
+	emuThread->gb.video.draw_window(debugVideoDrawWindow->isChecked());
 }
 
 void QtBoiMainWindow::onDebugVideoDrawSprites()
 {
-    emuThread->gb.video.draw_sprites(debugVideoDrawSprites->isChecked());
+	emuThread->gb.video.draw_sprites(debugVideoDrawSprites->isChecked());
 }
 
