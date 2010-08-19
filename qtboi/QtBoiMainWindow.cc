@@ -11,8 +11,10 @@
 #include <QVBoxLayout>
 #include <QFile>
 #include <QTextStream>
+#include <QTime>
 
 #include <iostream>
+#include <cassert>
 
 #include "QtBoiMainWindow.h"
 #include "../core/GameBoy.h"
@@ -83,9 +85,8 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 
 	last_FPS_update=0.0f;
 	frames_since_last_FPS_update=0;
-	struct timespec tp;
-	clock_gettime(CLOCK_REALTIME, &tp);
-	init_seconds = tp.tv_sec;
+	time = QTime::currentTime();
+    time.start();
 }
 
 QtBoiMainWindow::~QtBoiMainWindow()
@@ -555,9 +556,7 @@ void QtBoiMainWindow::saveTags()
 
 double QtBoiMainWindow::now()
 {
-	struct timespec tp;
-	clock_gettime(CLOCK_REALTIME, &tp);
-	return (tp.tv_sec-init_seconds) + (tp.tv_nsec*1e-9);
+	return time.elapsed()/1000.0;
 }
 
 

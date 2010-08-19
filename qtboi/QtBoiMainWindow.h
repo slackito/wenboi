@@ -13,6 +13,7 @@
 #include <QString>
 #include <QUrl>
 #include <QHash>
+#include <QTime>
 
 #include "QtBoiEmuThread.h"
 #include "QtBoiDisassemblyWindow.h"
@@ -99,6 +100,8 @@ class QtBoiMainWindow: public QMainWindow
         QAction *debugVideoDrawBackground;
         QAction *debugVideoDrawWindow;
         QAction *debugVideoDrawSprites;
+
+        QTime time;
 };
 
 
