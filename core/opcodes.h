@@ -144,7 +144,7 @@
 		regs.A = static_cast<u8>(res); \
 		set_flag(ADD_SUB_FLAG); \
 		set_flag_if (res < 0,      CARRY_FLAG); \
-		set_flag_if (res == 0,     ZERO_FLAG); \
+		set_flag_if (regs.A == 0,  ZERO_FLAG); \
 		set_flag_if (half_res < 0, HALF_CARRY_FLAG); \
 		cycles_until_next_instruction = 4; \
 		break; \
