@@ -629,8 +629,15 @@ GameBoy::run_status GameBoy::run_cycle()
 					PUSH(0xD5, D, E)
 					PUSH(0xE5, H, L)
 
+					// POP AF: special because bits 0-3 in F are always 0
+					case 0xF1:
+					    regs.flags = memory.read(regs.SP) & 0xF0;
+					    regs.A = memory.read(regs.SP+1);
+					    regs.SP += 2;
+					    cycles_until_next_instruction = 12;
+					    break;
+
 					// POP nn
-					POP(0xF1, A, flags)
 					POP(0xC1, B, C)
 					POP(0xD1, D, E)
 					POP(0xE1, H, L)
