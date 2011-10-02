@@ -224,7 +224,6 @@
 		int half_res = (regs.HL & 0xFFF) + (regs.reg16 & 0xFFF); \
 		regs.HL = static_cast<u16>(res); \
 		reset_flag(ADD_SUB_FLAG); \
-		set_flag_if (res == 0,         ZERO_FLAG); \
 		set_flag_if (half_res > 0xFFF, HALF_CARRY_FLAG); \
 		set_flag_if (res > 0xFFFF,     CARRY_FLAG); \
 		cycles_until_next_instruction = 8; \
