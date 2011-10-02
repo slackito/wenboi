@@ -463,7 +463,7 @@ GameBoy::run_status GameBoy::run_cycle()
 					case 0x07: {
 						u8 bit7 = regs.A >>7;
 						regs.A = (regs.A << 1) | bit7;
-						set_flag_if(regs.A == 0, ZERO_FLAG);
+						reset_flag(ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						set_flag_if(bit7, CARRY_FLAG);
@@ -476,7 +476,7 @@ GameBoy::run_status GameBoy::run_cycle()
 						u8 bit7 = regs.A >> 7;
 						regs.A = (regs.A << 1) | check_flag(CARRY_FLAG);
 						set_flag_if(bit7, CARRY_FLAG);
-						set_flag_if(regs.A == 0, ZERO_FLAG);
+						reset_flag(ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						cycles_until_next_instruction = 4; 
@@ -487,7 +487,7 @@ GameBoy::run_status GameBoy::run_cycle()
 					case 0x0F: {
 						u8 bit0 = regs.A & 1;
 						regs.A = (regs.A >> 1) | (bit0 << 7);
-						set_flag_if(regs.A == 0, ZERO_FLAG);
+						reset_flag(ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						set_flag_if(bit0, CARRY_FLAG);
@@ -500,7 +500,7 @@ GameBoy::run_status GameBoy::run_cycle()
 						u8 bit0 = regs.A & 1;
 						regs.A = (regs.A >> 1) | (check_flag(CARRY_FLAG) << 7);
 						set_flag_if(bit0, CARRY_FLAG);
-						set_flag_if(regs.A == 0, ZERO_FLAG);
+						reset_flag(ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(HALF_CARRY_FLAG);
 						cycles_until_next_instruction = 4; 
@@ -906,6 +906,7 @@ GameBoy::run_status GameBoy::run_cycle()
 								set_flag_if(value == 0, ZERO_FLAG); 
 								reset_flag(ADD_SUB_FLAG); 
 								reset_flag(HALF_CARRY_FLAG); 
+								set_flag_if(bit0, CARRY_FLAG);
 								cycles_until_next_instruction = 16; 
 								break;
 							}
@@ -939,6 +940,7 @@ GameBoy::run_status GameBoy::run_cycle()
 								set_flag_if(value == 0, ZERO_FLAG); 
 								reset_flag(ADD_SUB_FLAG); 
 								reset_flag(HALF_CARRY_FLAG); 
+								set_flag_if(bit7, CARRY_FLAG);
 								cycles_until_next_instruction = 16; 
 								break;
 							}
