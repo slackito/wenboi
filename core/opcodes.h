@@ -266,7 +266,7 @@
 		set_flag_if(regs.reg == 0, ZERO_FLAG); \
 		reset_flag(ADD_SUB_FLAG); \
 		reset_flag(HALF_CARRY_FLAG); \
-        set_flag_if(bit7, CARRY_FLAG); \
+		set_flag_if(bit7, CARRY_FLAG); \
 		cycles_until_next_instruction = 8; \
 		break; \
 	}
