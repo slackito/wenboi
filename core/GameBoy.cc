@@ -381,26 +381,29 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					// DAA http://www.worldofspectrum.org/faq/reference/z80reference.htm#DAA
 					case 0x27: {
-						u8 corr_factor = 0;
-						if (regs.A > 0x99 || check_flag(CARRY_FLAG)) {
-							corr_factor = 0x60;
-							set_flag(CARRY_FLAG);
+						int a = regs.A;
+						bool carry = check_flag(CARRY_FLAG);
+						if (check_flag(ADD_SUB_FLAG)) {
+							if (check_flag(HALF_CARRY_FLAG)) {
+								a = (a - 6) & 0xFF;
+							}
+							if (carry) {
+								a -= 0x60;
+							}
 						} else {
-							reset_flag(CARRY_FLAG);
+							if (check_flag(HALF_CARRY_FLAG) || (a & 0xF) > 9) {
+								a += 0x06;
+							}
+							if (carry || a > 0x9F) {
+								a += 0x60;
+							}
 						}
 
-						if ((regs.A & 0x0F) > 9 || check_flag(HALF_CARRY_FLAG)) {
-							corr_factor |= 0x06;
-						}
-
-						if (!check_flag(ADD_SUB_FLAG)) {
-							regs.A += corr_factor;
-						} else {
-							regs.A -= corr_factor;
-						}
-
-						set_flag_if(regs.A==0, ZERO_FLAG);
 						reset_flag(HALF_CARRY_FLAG); // GBCPUman.pdf contradicts previous reference :P
+						set_flag_if(a > 0xFF || carry, CARRY_FLAG);
+						a &= 0xFF;
+						set_flag_if(a==0, ZERO_FLAG);
+						regs.A = static_cast<u8>(a);
 						cycles_until_next_instruction = 4; 
 						break;
 					}
@@ -906,7 +909,7 @@ GameBoy::run_status GameBoy::run_cycle()
 								set_flag_if(value == 0, ZERO_FLAG); 
 								reset_flag(ADD_SUB_FLAG); 
 								reset_flag(HALF_CARRY_FLAG); 
-								set_flag_if(bit0, CARRY_FLAG);
+								set_flag_if(bit7, CARRY_FLAG);
 								cycles_until_next_instruction = 16; 
 								break;
 							}
@@ -940,7 +943,7 @@ GameBoy::run_status GameBoy::run_cycle()
 								set_flag_if(value == 0, ZERO_FLAG); 
 								reset_flag(ADD_SUB_FLAG); 
 								reset_flag(HALF_CARRY_FLAG); 
-								set_flag_if(bit7, CARRY_FLAG);
+								set_flag_if(bit0, CARRY_FLAG);
 								cycles_until_next_instruction = 16; 
 								break;
 							}
