@@ -4,7 +4,7 @@ wenboi
 A simple Game Boy emulator
 
 Build instructions
-==================
+------------------
 
 wenboi uses CMake for building and depends on Qt, so you should install
 the qt development package for your distro of choice and do this at the
