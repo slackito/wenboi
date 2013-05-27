@@ -1403,11 +1403,12 @@ GameBoy::run_status GameBoy::run_cycle()
 	u8 TAC = memory.high[GBMemory::I_TAC];
 	if (TAC & 0x04)
 	{
-		timer_count++;
+		timer_count+=CYCLE_STEP;
+
 		u32 limit;
 		u32 val = TAC & 0x03;
-		if (val)
-			limit = 16 << (2*val);
+		if (val > 0)
+			limit = 4 << (2*val);
 		else
 			limit = 1024;
 
