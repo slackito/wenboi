@@ -613,11 +613,13 @@ GameBoy::run_status GameBoy::run_cycle()
 					case 0xF8: {
 						s8 offset = memory.read(regs.PC++);
 						int res = regs.SP + offset;
+						int res8 = (regs.SP & 0xFF) + (offset & 0xFF);
+						int half_res = (regs.SP & 0xF) + (offset & 0xF);
+						// Do the same as 0xE8 for the carry flags
 						
-						// TODO: Verificar si los flags van asi
-						set_flag_if (res > 0xFFFF, CARRY_FLAG);
+						set_flag_if (res8 > 0xFF, CARRY_FLAG);
+						set_flag_if (half_res > 0xF, HALF_CARRY_FLAG);
 
-						// TODO: hacer lo apropiado con el half-carry flag
 						reset_flag(ADD_SUB_FLAG);
 						reset_flag(ZERO_FLAG);
 
@@ -864,13 +866,18 @@ GameBoy::run_status GameBoy::run_cycle()
 
 					// ADD SP, #
 					case 0xE8: {
-						// FIXME: No se que hacer con el half carry, en 4 o en 11?
+						// Carry flag: set when carry from bit 7 to 8
+						// Half-carry flag: set when carry from bit 3 to 4
+						// http://stackoverflow.com/questions/5159603/gbz80-how-does-ld-hl-spe-affect-h-and-c-flags
 						int n = static_cast<s8>(memory.read(regs.PC++));
 						int res = regs.SP + n;
+						int res8 = (regs.SP & 0xFF) + (n & 0xFF);
+						int half_res = (regs.SP & 0xF) + (n & 0xF);
 						regs.SP = static_cast<u16>(res);
 						reset_flag(ZERO_FLAG);
 						reset_flag(ADD_SUB_FLAG);
-						set_flag_if(res > 0xFFFF, CARRY_FLAG);
+						set_flag_if(res8 > 0xFF, CARRY_FLAG);
+						set_flag_if(half_res > 0xF, HALF_CARRY_FLAG);
 						cycles_until_next_instruction = 16; 
 						break;
 					}
