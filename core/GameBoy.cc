@@ -182,9 +182,14 @@ GameBoy::run_status GameBoy::run_cycle()
 		// Check for interrupts before opcode fetching
 		u8 IE=memory.high[GBMemory::I_IE];
 		//logger.trace("IME=", int(IME), " IE=", int(IE));
+
+		// bugfix (blargg test 02-halt): cpu exits from halt state if there is an interrupt flag raised,
+		// even if interrupts are globally disabled
+                u8 IF = memory.high[GBMemory::I_IF];
+                if (HALT && IF) HALT=false;
+
 		if (IME && IE)
 		{
-			u8 IF = memory.high[GBMemory::I_IF];
 			//logger.trace("Dispatching interrupts: IE=", int(IE), " IF=", int(IF));
 			if (IF)
 			{
@@ -194,7 +199,6 @@ GameBoy::run_status GameBoy::run_cycle()
 					IF &= (~IRQ_VBLANK);
 					do_call(0x40);
 					logger.trace("VBLANK IRQ");
-					HALT=false;
 				}
 				else if ((IF & IRQ_LCD_STAT) && (IE & IRQ_LCD_STAT))
 				{
@@ -202,7 +206,6 @@ GameBoy::run_status GameBoy::run_cycle()
 					IF &= (~IRQ_LCD_STAT);
 					do_call(0x48);
 					logger.trace("LCD STAT IRQ");
-					HALT=false;
 				} 
 				else if ((IF & IRQ_TIMER) && (IE & IRQ_TIMER))
 				{
@@ -210,7 +213,6 @@ GameBoy::run_status GameBoy::run_cycle()
 					IF &= (~IRQ_TIMER);
 					do_call(0x50);
 					logger.trace("TIMER IRQ");
-					HALT=false;
 				}
 				else if ((IF & IRQ_SERIAL) && (IE & IRQ_SERIAL))   
 				{
@@ -218,7 +220,6 @@ GameBoy::run_status GameBoy::run_cycle()
 					IF &= (~IRQ_SERIAL);
 					do_call(0x58);
 					logger.trace("SERIAL IRQ");
-					HALT=false;
 				}
 				else if ((IF & IRQ_JOYPAD) && (IE & IRQ_JOYPAD))     
 				{
@@ -226,7 +227,6 @@ GameBoy::run_status GameBoy::run_cycle()
 					IF &= (~IRQ_JOYPAD);
 					do_call(0x60);
 					logger.trace("JOYPAD IRQ");
-					HALT=false;
 				}
 			}
 			memory.high[GBMemory::I_IF] = IF;
