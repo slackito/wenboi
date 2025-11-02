@@ -26,6 +26,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	screenImage = new QImage(160,144, QImage::Format_RGB32);
 	scaledImage = new QImage(320,288, QImage::Format_RGB32);
 	scalingMethod = SCALING_QIMAGE;
+    limitFramerate = true;
 
 	// greenish palette
 	/*
@@ -111,6 +112,9 @@ void QtBoiMainWindow::createActions()
 	emulatorStop  = new QAction(tr("&Stop"), this);
 	emulatorStep  = new QAction(tr("St&ep"), this);
 	emulatorReset = new QAction(tr("&Reset"), this);
+    limitFramerateAction = new QAction(tr("&Limit framerate"), this);
+    limitFramerateAction->setCheckable(true);
+    limitFramerateAction->setChecked(true);
 	
 	viewDisassemblyWindow = new QAction(tr("&Disassembly window"), this);
 	viewStatusWindow	  = new QAction(tr("&Status window"), this);
@@ -152,6 +156,7 @@ void QtBoiMainWindow::createActions()
 	connect(emulatorPause, &QAction::triggered, emuThread, &QtBoiEmuThread::pause);
 	connect(emulatorStep, &QAction::triggered, emuThread, &QtBoiEmuThread::step);
 	connect(emulatorReset, &QAction::triggered, emuThread, &QtBoiEmuThread::reset);
+	connect(limitFramerateAction, &QAction::triggered, this, &QtBoiMainWindow::onLimitFramerate);
 	connect(viewDisassemblyWindow, &QAction::triggered, this, &QtBoiMainWindow::onViewDisassemblyWindow);
 	connect(viewStatusWindow, &QAction::triggered, this, &QtBoiMainWindow::onViewStatusWindow);
 	connect(scalingNone, &QAction::triggered, this, &QtBoiMainWindow::onScalingNone);
@@ -187,6 +192,8 @@ void QtBoiMainWindow::createMenu()
 	emulator->addAction(emulatorPause);
 	emulator->addAction(emulatorStop);
 	emulator->addAction(emulatorReset);
+    emulator->addSeparator();
+    emulator->addAction(limitFramerateAction);
 
 	QMenu *debug;
 	debug = menuBar()->addMenu(tr("&Debug"));
@@ -404,6 +411,12 @@ void QtBoiMainWindow::onScalingQImage()
 void QtBoiMainWindow::onScalingScale2X()
 {
 	scalingMethod = SCALING_SCALE2X;
+}
+
+void QtBoiMainWindow::onLimitFramerate()
+{
+    limitFramerate = limitFramerateAction->isChecked();
+    emuThread->limitFramerate = limitFramerate;
 }
 
 void QtBoiMainWindow::onViewDisassemblyWindow()

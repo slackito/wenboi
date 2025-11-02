@@ -41,10 +41,12 @@ class QtBoiMainWindow: public QMainWindow
         void onDebugVideoDrawBackground();
         void onDebugVideoDrawWindow();
         void onDebugVideoDrawSprites();
+        void onLimitFramerate();
 
 	private:
 		enum ScalingMethod {SCALING_NONE, SCALING_QIMAGE, SCALING_SCALE2X};
 		ScalingMethod scalingMethod;
+        bool limitFramerate;
 
 		// private functions
 		void scale2x(const QImage *src, QImage *dst);
@@ -100,6 +102,7 @@ class QtBoiMainWindow: public QMainWindow
         QAction *debugVideoDrawBackground;
         QAction *debugVideoDrawWindow;
         QAction *debugVideoDrawSprites;
+        QAction *limitFramerateAction;
 
         QElapsedTimer time;
 };

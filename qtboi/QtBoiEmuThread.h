@@ -2,6 +2,7 @@
 #define QTBOIEMUTHREAD_H
 
 #include <QtCore/QThread>
+#include <QtCore/QElapsedTimer>
 #include <QString>
 #include "../core/GameBoy.h"
 
@@ -14,6 +15,7 @@ class QtBoiEmuThread: public QThread
     GameBoy::run_status status;
     bool isPaused;
     unsigned int frameCount;
+    bool limitFramerate;
 
     QtBoiEmuThread(QObject *parent);
     ~QtBoiEmuThread();
@@ -44,6 +46,7 @@ class QtBoiEmuThread: public QThread
     bool quitRequested;
     bool resetRequested;
     bool romLoaded;
+    QElapsedTimer frameTimer;
 };
 
 

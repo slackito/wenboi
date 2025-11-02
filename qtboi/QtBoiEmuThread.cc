@@ -47,12 +47,14 @@ QtBoiEmuThread::QtBoiEmuThread(QObject *parent)
 	status(GameBoy::NORMAL),
 	isPaused(true),
 	frameCount(0),
+    limitFramerate(true),
 	romName(),
 	runningMode(RUN),
 	quitRequested(false),
 	resetRequested(false),
 	romLoaded(false)
 {
+    frameTimer.start();
 }
 
 QtBoiEmuThread::~QtBoiEmuThread()
@@ -135,15 +137,20 @@ void QtBoiEmuThread::run()
 						(status == GameBoy::NORMAL || status == GameBoy::WAIT))
 					{
 						status = gb.run_cycle();
-						if (gb.video.get_frames_rendered() > frameCount)
-						{
-							frameCount = gb.video.get_frames_rendered();
-							emit redraw(gb.video.get_screen_buffer());
-							//msleep(5);
-						}
-					}
-                    if (status == GameBoy::BREAKPOINT) {
-                        emit breakpointReached(gb.regs.PC);
+												if (gb.video.get_frames_rendered() > frameCount)
+												{
+													frameCount = gb.video.get_frames_rendered();
+													emit redraw(gb.video.get_screen_buffer());
+						                                if (limitFramerate) {
+						                                    qint64 elapsed = frameTimer.elapsed();
+						                                    if (elapsed < 16) {
+						                                        msleep(16 - elapsed);
+						                                    }
+						                                    frameTimer.start();
+						                                }
+												}
+											}
+						    if (status == GameBoy::BREAKPOINT) {                        emit breakpointReached(gb.regs.PC);
                         isPaused=true;
                     }
 					break;
