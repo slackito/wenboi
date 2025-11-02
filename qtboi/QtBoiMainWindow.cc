@@ -293,7 +293,7 @@ void QtBoiMainWindow::onRedraw(const uchar *buffer)
 	for (int y=0; y<144; y++)
 		for (int x=0; x<160; x++) {
 			unsigned int val = 255-buffer[160*y+x]*42;
-			pixels[160*y+x]=(val<<16)|(val<<8)|val;
+			pixels[160*y+x]=0xFF000000|(val<<16)|(val<<8)|val;
 		}
 
 	switch(scalingMethod){
