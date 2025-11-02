@@ -1,25 +1,20 @@
 #ifndef QTBOISTATUSWINDOW_H
 #define QTBOISTATUSWINDOW_H
 
-#include <QtWidgets/QTextBrowser>
 #include "../core/GameBoy.h"
+#include <QtWidgets/QTextBrowser>
 
-class QtBoiStatusWindow: public QTextBrowser
-{
-        Q_OBJECT
+class QtBoiStatusWindow : public QTextBrowser {
+  Q_OBJECT
 
-        public:
-                QtBoiStatusWindow(QWidget *parent, GameBoy *gb);
-                ~QtBoiStatusWindow();
+public:
+  QtBoiStatusWindow(QWidget *parent, GameBoy *gb);
+  ~QtBoiStatusWindow();
 
-                void update();
+  void update();
 
-        private:
-                GameBoy *gb;
-
+private:
+  GameBoy *gb;
 };
 
-
 #endif
-
-

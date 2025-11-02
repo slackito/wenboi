@@ -1,113 +1,109 @@
 #ifndef QTBOIMAINWINDOW_H
 #define QTBOIMAINWINDOW_H
 
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QMainWindow>
-#include <QtGui/QKeyEvent>
-#include <QtGui/QActionGroup>
-#include <QtWidgets/QPushButton>
-#include <QtGui/QImage>
-#include <QtWidgets/QLabel>
-#include <QtWidgets/QStatusBar>
-#include <QtWidgets/QTextBrowser>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QHash>
 #include <QtCore/QString>
 #include <QtCore/QUrl>
-#include <QtCore/QHash>
-#include <QtCore/QElapsedTimer>
+#include <QtGui/QActionGroup>
+#include <QtGui/QImage>
+#include <QtGui/QKeyEvent>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QStatusBar>
+#include <QtWidgets/QTextBrowser>
 
-#include "QtBoiEmuThread.h"
 #include "QtBoiDisassemblyWindow.h"
+#include "QtBoiEmuThread.h"
 #include "QtBoiStatusWindow.h"
 
-class QtBoiMainWindow: public QMainWindow
-{
-	Q_OBJECT
+class QtBoiMainWindow : public QMainWindow {
+  Q_OBJECT
 
-	public:
-		QtBoiMainWindow(QWidget *parent=0);
-		~QtBoiMainWindow();
+public:
+  QtBoiMainWindow(QWidget *parent = 0);
+  ~QtBoiMainWindow();
 
-	public slots:
-		void onLoadROM();
-		void onDisassemblyAnchorClicked(const QUrl&);
-		void onRedraw(const uchar *buffer);
-		void onPause();
-		void onResume();
-		void onScalingNone();
-		void onScalingQImage();
-		void onScalingScale2X();
-		void onViewDisassemblyWindow();
-		void onViewStatusWindow();
-        void onDebugVideoDrawBackground();
-        void onDebugVideoDrawWindow();
-        void onDebugVideoDrawSprites();
-        void onLimitFramerate();
+public slots:
+  void onLoadROM();
+  void onDisassemblyAnchorClicked(const QUrl &);
+  void onRedraw(const uchar *buffer);
+  void onPause();
+  void onResume();
+  void onScalingNone();
+  void onScalingQImage();
+  void onScalingScale2X();
+  void onViewDisassemblyWindow();
+  void onViewStatusWindow();
+  void onDebugVideoDrawBackground();
+  void onDebugVideoDrawWindow();
+  void onDebugVideoDrawSprites();
+  void onLimitFramerate();
 
-	private:
-		enum ScalingMethod {SCALING_NONE, SCALING_QIMAGE, SCALING_SCALE2X};
-		ScalingMethod scalingMethod;
-        bool limitFramerate;
+private:
+  enum ScalingMethod { SCALING_NONE, SCALING_QIMAGE, SCALING_SCALE2X };
+  ScalingMethod scalingMethod;
+  bool limitFramerate;
 
-		// private functions
-		void scale2x(const QImage *src, QImage *dst);
+  // private functions
+  void scale2x(const QImage *src, QImage *dst);
 
-		void createActions();
-		void createMenu();
-		void createToolbar();
+  void createActions();
+  void createMenu();
+  void createToolbar();
 
-		void loadTags();
-		void saveTags();
+  void loadTags();
+  void saveTags();
 
-        double now(); // in seconds
+  double now(); // in seconds
 
-		// events
-		void keyPressEvent(QKeyEvent *event);
-		void keyReleaseEvent(QKeyEvent *event);
+  // events
+  void keyPressEvent(QKeyEvent *event);
+  void keyReleaseEvent(QKeyEvent *event);
 
-        // attributes
-        unsigned int frames_since_last_FPS_update;
-        float last_FPS_update;
-        unsigned int init_seconds;
+  // attributes
+  unsigned int frames_since_last_FPS_update;
+  float last_FPS_update;
+  unsigned int init_seconds;
 
-		QtBoiEmuThread *emuThread;
-		
-		QString romTitle;
-		QHash<u32, QString> tags;
+  QtBoiEmuThread *emuThread;
 
-		QWidget *centralWindow;
-		QLabel  *screen;
-		QImage  *screenImage;
-		QImage  *scaledImage;
+  QString romTitle;
+  QHash<u32, QString> tags;
 
-        QStatusBar *statusbar;
-        QtBoiDisassemblyWindow *disassembly;
-		QtBoiStatusWindow *status;
+  QWidget *centralWindow;
+  QLabel *screen;
+  QImage *screenImage;
+  QImage *scaledImage;
 
-		QAction *loadROM;
-		QAction *quit;
-		QAction *emulatorPause;
-		QAction *emulatorCont;
-		QAction *emulatorStop;
-		QAction *emulatorStep;
-		QAction *emulatorReset;
+  QStatusBar *statusbar;
+  QtBoiDisassemblyWindow *disassembly;
+  QtBoiStatusWindow *status;
 
-		QAction *viewDisassemblyWindow;
-		QAction *viewStatusWindow;
+  QAction *loadROM;
+  QAction *quit;
+  QAction *emulatorPause;
+  QAction *emulatorCont;
+  QAction *emulatorStop;
+  QAction *emulatorStep;
+  QAction *emulatorReset;
 
-		QActionGroup *scalingGroup;
-		QAction *scalingNone;
-		QAction *scalingQImage;
-		QAction *scalingScale2X;
+  QAction *viewDisassemblyWindow;
+  QAction *viewStatusWindow;
 
-        QAction *debugVideoDrawBackground;
-        QAction *debugVideoDrawWindow;
-        QAction *debugVideoDrawSprites;
-        QAction *limitFramerateAction;
+  QActionGroup *scalingGroup;
+  QAction *scalingNone;
+  QAction *scalingQImage;
+  QAction *scalingScale2X;
 
-        QElapsedTimer time;
+  QAction *debugVideoDrawBackground;
+  QAction *debugVideoDrawWindow;
+  QAction *debugVideoDrawSprites;
+  QAction *limitFramerateAction;
+
+  QElapsedTimer time;
 };
 
-
 #endif
-
-
