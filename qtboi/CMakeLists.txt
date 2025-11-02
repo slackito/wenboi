@@ -1,23 +1,24 @@
-FIND_PACKAGE(Qt4 REQUIRED)
-INCLUDE( ${QT_USE_FILE} )
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
-SET(QTBOI_MOC_HDRS
-  QtBoiMainWindow.h
-  QtBoiEmuThread.h
-  QtBoiDisassemblyWindow.h
-  QtBoiStatusWindow.h
+set(QTBOI_MOC_HDRS
+    QtBoiMainWindow.h
+    QtBoiEmuThread.h
+    QtBoiDisassemblyWindow.h
+    QtBoiStatusWindow.h
 )
 
-SET(QTBOI_SOURCES
-  qtboi.cc
-  QtBoiMainWindow.cc
-  QtBoiEmuThread.cc
-  QtBoiDisassemblyWindow.cc
-  QtBoiStatusWindow.cc
+set(QTBOI_SOURCES
+    qtboi.cc
+    QtBoiMainWindow.cc
+    QtBoiEmuThread.cc
+    QtBoiDisassemblyWindow.cc
+    QtBoiStatusWindow.cc
 )
 
-QT4_WRAP_CPP(QTBOI_MOC_SRCS ${QTBOI_MOC_HDRS})
-ADD_EXECUTABLE(qtboi ${QTBOI_SOURCES} ${QTBOI_MOC_SRCS})
+qt_add_executable(qtboi
+    ${QTBOI_SOURCES}
+    ${QTBOI_MOC_HDRS}
+)
 
-TARGET_LINK_LIBRARIES(qtboi ${QT_LIBRARIES} wenboicore)
+target_link_libraries(qtboi PRIVATE Qt6::Widgets wenboicore)
 

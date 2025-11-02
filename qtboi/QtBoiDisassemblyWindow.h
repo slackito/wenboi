@@ -1,8 +1,8 @@
 #ifndef QTBOIDISASSEMBLYWINDOW_H
 #define QTBOIDISASSEMBLYWINDOW_H
 
-#include <QTextBrowser>
-#include <QPushButton>
+#include <QtWidgets/QTextBrowser>
+#include <QtWidgets/QPushButton>
 #include <QString>
 #include <QHash>
 #include <QList>

@@ -1,7 +1,7 @@
 #ifndef QTBOISTATUSWINDOW_H
 #define QTBOISTATUSWINDOW_H
 
-#include <QTextBrowser>
+#include <QtWidgets/QTextBrowser>
 #include "../core/GameBoy.h"
 
 class QtBoiStatusWindow: public QTextBrowser

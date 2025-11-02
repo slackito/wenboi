@@ -1,17 +1,17 @@
-#include <QMenu>
-#include <QMenuBar>
-#include <QToolBar>
-#include <QString>
-#include <QFileDialog>
-#include <QInputDialog>
-#include <QPushButton>
-#include <QColor>
-#include <QGroupBox>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QFile>
-#include <QTextStream>
-#include <QTime>
+#include <QtWidgets/QMenu>
+#include <QtWidgets/QMenuBar>
+#include <QtWidgets/QToolBar>
+#include <QtCore/QString>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QInputDialog>
+#include <QtWidgets/QPushButton>
+#include <QtGui/QColor>
+#include <QtWidgets/QGroupBox>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QVBoxLayout>
+#include <QtCore/QFile>
+#include <QtCore/QTextStream>
+#include <QtCore/QElapsedTimer>
 
 #include <iostream>
 #include <cassert>
@@ -40,8 +40,8 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 
 	emuThread = new QtBoiEmuThread(this);
 	emuThread->start();
-	connect(emuThread, SIGNAL(redraw(const uchar*)), this, SLOT(onRedraw(const uchar*)));
-	connect(emuThread, SIGNAL(emulationPaused()), this, SLOT(onPause()));
+	connect(emuThread, &QtBoiEmuThread::redraw, this, &QtBoiMainWindow::onRedraw);
+	connect(emuThread, &QtBoiEmuThread::emulationPaused, this, &QtBoiMainWindow::onPause);
 
 	createActions();
 	createMenu();
@@ -71,7 +71,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 	leftVBoxLayout->addWidget(status);
 
 	disassembly = new QtBoiDisassemblyWindow(centralWindow, &emuThread->gb, &tags);
-	connect(disassembly, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(onDisassemblyAnchorClicked(const QUrl&)));
+	connect(disassembly, &QtBoiDisassemblyWindow::anchorClicked, this, &QtBoiMainWindow::onDisassemblyAnchorClicked);
 	rightVBoxLayout->addWidget(disassembly);
 
 	centralWindow->setLayout(topHBoxLayout);
@@ -85,7 +85,7 @@ QtBoiMainWindow::QtBoiMainWindow(QWidget *parent)
 
 	last_FPS_update=0.0f;
 	frames_since_last_FPS_update=0;
-	time = QTime::currentTime();
+	time = QElapsedTimer();
     time.start();
 }
 
@@ -138,28 +138,28 @@ void QtBoiMainWindow::createActions()
 	debugVideoDrawSprites->setCheckable(true);
 	debugVideoDrawSprites->setChecked(true);
 
-	loadROM->setShortcut(QKeySequence(tr("Ctrl+O", "File|Load ROM...")));
-	emulatorCont->setShortcut(QKeySequence(tr("F5", "Emulator|Go")));
-	emulatorPause->setShortcut(QKeySequence(tr("F6", "Emulator|Pause")));
-	emulatorStep->setShortcut(QKeySequence(tr("F7", "Debug|Step")));
+	loadROM->setShortcut(QKeySequence(tr("Ctrl+O")));
+	emulatorCont->setShortcut(QKeySequence(tr("F5")));
+	emulatorPause->setShortcut(QKeySequence(tr("F6")));
+	emulatorStep->setShortcut(QKeySequence(tr("F7")));
 	//emulatorCont->setIcon(QIcon("../icons/player_play.svg"));
 	//emulatorPause->setIcon(QIcon("../icons/player_pause.svg"));
 	//loadROM->setIcon(QIcon("../icons/fileopen.svg"));
 
-	connect(emulatorCont, SIGNAL(triggered()), emuThread, SLOT(cont()));
-	connect(emulatorCont, SIGNAL(triggered()), this, SLOT(onResume()));
-	connect(emulatorStop, SIGNAL(triggered()), emuThread, SLOT(stop()));
-	connect(emulatorPause, SIGNAL(triggered()), emuThread, SLOT(pause()));
-	connect(emulatorStep, SIGNAL(triggered()), emuThread, SLOT(step()));
-	connect(emulatorReset, SIGNAL(triggered()), emuThread, SLOT(reset()));
-	connect(viewDisassemblyWindow, SIGNAL(triggered()), this, SLOT(onViewDisassemblyWindow()));
-	connect(viewStatusWindow, SIGNAL(triggered()), this, SLOT(onViewStatusWindow()));
-	connect(scalingNone, SIGNAL(triggered()), this, SLOT(onScalingNone()));
-	connect(scalingQImage, SIGNAL(triggered()), this, SLOT(onScalingQImage()));
-	connect(scalingScale2X, SIGNAL(triggered()), this, SLOT(onScalingScale2X()));
-	connect(debugVideoDrawBackground, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawBackground()));
-	connect(debugVideoDrawWindow, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawWindow()));
-	connect(debugVideoDrawSprites, SIGNAL(triggered()), this, SLOT(onDebugVideoDrawSprites()));
+	connect(emulatorCont, &QAction::triggered, emuThread, &QtBoiEmuThread::cont);
+	connect(emulatorCont, &QAction::triggered, this, &QtBoiMainWindow::onResume);
+	connect(emulatorStop, &QAction::triggered, emuThread, &QtBoiEmuThread::stop);
+	connect(emulatorPause, &QAction::triggered, emuThread, &QtBoiEmuThread::pause);
+	connect(emulatorStep, &QAction::triggered, emuThread, &QtBoiEmuThread::step);
+	connect(emulatorReset, &QAction::triggered, emuThread, &QtBoiEmuThread::reset);
+	connect(viewDisassemblyWindow, &QAction::triggered, this, &QtBoiMainWindow::onViewDisassemblyWindow);
+	connect(viewStatusWindow, &QAction::triggered, this, &QtBoiMainWindow::onViewStatusWindow);
+	connect(scalingNone, &QAction::triggered, this, &QtBoiMainWindow::onScalingNone);
+	connect(scalingQImage, &QAction::triggered, this, &QtBoiMainWindow::onScalingQImage);
+	connect(scalingScale2X, &QAction::triggered, this, &QtBoiMainWindow::onScalingScale2X);
+	connect(debugVideoDrawBackground, &QAction::triggered, this, &QtBoiMainWindow::onDebugVideoDrawBackground);
+	connect(debugVideoDrawWindow, &QAction::triggered, this, &QtBoiMainWindow::onDebugVideoDrawWindow);
+	connect(debugVideoDrawSprites, &QAction::triggered, this, &QtBoiMainWindow::onDebugVideoDrawSprites);
 }
 
 
@@ -196,8 +196,8 @@ void QtBoiMainWindow::createMenu()
 	debugVideo->addAction(debugVideoDrawWindow);
 	debugVideo->addAction(debugVideoDrawSprites);
 
-	connect(quit, SIGNAL(triggered()), qApp, SLOT(quit()));
-	connect(loadROM, SIGNAL(triggered()), this, SLOT(onLoadROM()));
+	connect(quit, &QAction::triggered, qApp, &QApplication::quit);
+	connect(loadROM, &QAction::triggered, this, &QtBoiMainWindow::onLoadROM);
 }
 
 void QtBoiMainWindow::createToolbar()

@@ -3,11 +3,11 @@
 #include <iomanip>
 #include <cstdlib>
 
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QFont>
-#include <QInputDialog>
-#include <QStringList>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QVBoxLayout>
+#include <QtGui/QFont>
+#include <QtWidgets/QInputDialog>
+#include <QtCore/QStringList>
 
 #include "QtBoiDisassemblyWindow.h"
 #include "../common/toString.h"

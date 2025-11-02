@@ -1,6 +1,13 @@
 PROJECT(wenboi)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6.0)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.16.0)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
+
+message("Using Qt version: ${Qt6_VERSION}")
 
 IF(CMAKE_COMPILER_IS_GNUCC)
   MESSAGE("Setting warning options")

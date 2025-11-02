@@ -1,7 +1,7 @@
 #ifndef QTBOIEMUTHREAD_H
 #define QTBOIEMUTHREAD_H
 
-#include <QThread>
+#include <QtCore/QThread>
 #include <QString>
 #include "../core/GameBoy.h"
 

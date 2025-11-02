@@ -1,19 +1,19 @@
 #ifndef QTBOIMAINWINDOW_H
 #define QTBOIMAINWINDOW_H
 
-#include <QApplication>
-#include <QMainWindow>
-#include <QKeyEvent>
-#include <QActionGroup>
-#include <QPushButton>
-#include <QImage>
-#include <QLabel>
-#include <QStatusBar>
-#include <QTextBrowser>
-#include <QString>
-#include <QUrl>
-#include <QHash>
-#include <QTime>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QMainWindow>
+#include <QtGui/QKeyEvent>
+#include <QtGui/QActionGroup>
+#include <QtWidgets/QPushButton>
+#include <QtGui/QImage>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QStatusBar>
+#include <QtWidgets/QTextBrowser>
+#include <QtCore/QString>
+#include <QtCore/QUrl>
+#include <QtCore/QHash>
+#include <QtCore/QElapsedTimer>
 
 #include "QtBoiEmuThread.h"
 #include "QtBoiDisassemblyWindow.h"
@@ -101,7 +101,7 @@ class QtBoiMainWindow: public QMainWindow
         QAction *debugVideoDrawWindow;
         QAction *debugVideoDrawSprites;
 
-        QTime time;
+        QElapsedTimer time;
 };
 
 
