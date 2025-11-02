@@ -1,7 +1,7 @@
 /*
     Copyright 2008 Jorge Gorbe Moya <slack@codemaniacs.com>
 
-    This file is part of wenboi 
+    This file is part of wenboi
 
     wenboi is free software: you can redistribute it and/or modify it under the
     terms of the GNU General Public License version 3 only, as published by the
@@ -26,4 +26,3 @@ uint32 flip_bit(uint32 val, uint32 pos);
 bool check_bit(uint32 val, uint32 pos);
 
 #endif
-

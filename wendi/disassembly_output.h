@@ -1,7 +1,7 @@
 /*
     Copyright 2008 Jorge Gorbe Moya <slack@codemaniacs.com>
 
-    This file is part of wenboi 
+    This file is part of wenboi
 
     wenboi is free software: you can redistribute it and/or modify it under the
     terms of the GNU General Public License version 3 only, as published by the
@@ -22,12 +22,10 @@
 #include "CodeBlock.h"
 #include <vector>
 
-class DisassemblyOutput
-{
-  public:
-  virtual void generate_output(GameBoy &gb, std::vector<CodeBlock> &v)=0;
+class DisassemblyOutput {
+public:
+  virtual void generate_output(GameBoy &gb, std::vector<CodeBlock> &v) = 0;
   virtual ~DisassemblyOutput() {}
 };
 
 #endif
-

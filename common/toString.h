@@ -1,7 +1,7 @@
 /*
     Copyright 2008 Jorge Gorbe Moya <slack@codemaniacs.com>
 
-    This file is part of wenboi 
+    This file is part of wenboi
 
     wenboi is free software: you can redistribute it and/or modify it under the
     terms of the GNU General Public License version 3 only, as published by the
@@ -14,28 +14,23 @@
 
     You should have received a copy of the GNU General Public License
     along with wenboi.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+*/
 #ifndef TOSTRING_H
 #define TOSTRING_H
 
-#include <string>
 #include <sstream>
+#include <string>
 
-template <class T> 
-std::string toString(const T &object)
-{
-	std::ostringstream os;
-	os << object;
-	return(os.str());
+template <class T> std::string toString(const T &object) {
+  std::ostringstream os;
+  os << object;
+  return (os.str());
 }
 
-template <class T> 
-std::string toStringHex(const T &object, int width)
-{
-	std::ostringstream os;
-	os << "0x" << std::hex << std::setw(width) << std::setfill('0') << object;
-	return(os.str());
+template <class T> std::string toStringHex(const T &object, int width) {
+  std::ostringstream os;
+  os << "0x" << std::hex << std::setw(width) << std::setfill('0') << object;
+  return (os.str());
 }
 
 #endif
-

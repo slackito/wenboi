@@ -1,7 +1,7 @@
 /*
     Copyright 2008 Jorge Gorbe Moya <slack@codemaniacs.com>
 
-    This file is part of wenboi 
+    This file is part of wenboi
 
     wenboi is free software: you can redistribute it and/or modify it under the
     terms of the GNU General Public License version 3 only, as published by the
@@ -18,62 +18,62 @@
 #ifndef CODEBLOCK_H
 #define CODEBLOCK_H
 
-#include <vector>
-#include <utility>
-#include <string>
-#include <list>
-#include "../core/Instruction.h"
 #include "../common/sized_types.h"
+#include "../core/Instruction.h"
+#include <list>
+#include <string>
+#include <utility>
+#include <vector>
 
 typedef u16 address;
 
-class CodeBlock
-{
-	public:
-	enum CodeBlockType
-	{
-		BLOCK            = 0x000,
-		FUNCTION         = 0x001,
-		VBLANK_HANDLER   = 0x002,
-		LCD_STAT_HANDLER = 0x004,
-		TIMER_HANDLER    = 0x008,
-		SERIAL_HANDLER   = 0x010,
-		JOYPAD_HANDLER   = 0x020,
-		ENTRYPOINT       = 0x040,
-		JUMP_TABLE       = 0x080,
-		JUMP_TABLE_DEST  = 0x100,
-	};
+class CodeBlock {
+public:
+  enum CodeBlockType {
+    BLOCK = 0x000,
+    FUNCTION = 0x001,
+    VBLANK_HANDLER = 0x002,
+    LCD_STAT_HANDLER = 0x004,
+    TIMER_HANDLER = 0x008,
+    SERIAL_HANDLER = 0x010,
+    JOYPAD_HANDLER = 0x020,
+    ENTRYPOINT = 0x040,
+    JUMP_TABLE = 0x080,
+    JUMP_TABLE_DEST = 0x100,
+  };
 
-	typedef std::pair<address, std::string> DisassemblyItem;
-	typedef std::pair<address, Instruction::InstructionType> XrefsItem;
-	typedef std::list<DisassemblyItem>      DisassemblyList;
-	typedef std::vector<XrefsItem>          XrefsVector;
-	
-	typedef DisassemblyList::iterator       DisassemblyIterator;
-	typedef DisassemblyList::const_iterator DisassemblyConstIterator;
-	typedef XrefsVector::iterator           XrefsIterator;
-	typedef XrefsVector::const_iterator     XrefsConstIterator;
+  typedef std::pair<address, std::string> DisassemblyItem;
+  typedef std::pair<address, Instruction::InstructionType> XrefsItem;
+  typedef std::list<DisassemblyItem> DisassemblyList;
+  typedef std::vector<XrefsItem> XrefsVector;
 
-	int type;
+  typedef DisassemblyList::iterator DisassemblyIterator;
+  typedef DisassemblyList::const_iterator DisassemblyConstIterator;
+  typedef XrefsVector::iterator XrefsIterator;
+  typedef XrefsVector::const_iterator XrefsConstIterator;
 
-	address start, end;  // block is [start, end[
-	DisassemblyList disassembly;
-	XrefsVector xrefs;
+  int type;
 
-	std::string name;
+  address start, end; // block is [start, end[
+  DisassemblyList disassembly;
+  XrefsVector xrefs;
 
-	CodeBlock(address start); //< creates an empty CodeBlock 
-	CodeBlock(CodeBlock &block, address addr); //< removes [addr,end[ from the block creating a new one
-	CodeBlock(CodeBlockType type, address start, address end); // Creates a "raw" block
+  std::string name;
 
-	int length() { return end-start; }
-	void add_instruction(std::string ins, int nbytes); // appends an instruction to the end of the block
-	void add_xref(address addr, Instruction::InstructionType jt);
+  CodeBlock(address start); //< creates an empty CodeBlock
+  CodeBlock(
+      CodeBlock &block,
+      address addr); //< removes [addr,end[ from the block creating a new one
+  CodeBlock(CodeBlockType type, address start,
+            address end); // Creates a "raw" block
 
-	bool operator< (const CodeBlock& other) const { return start < other.start; }
+  int length() { return end - start; }
+  void
+  add_instruction(std::string ins,
+                  int nbytes); // appends an instruction to the end of the block
+  void add_xref(address addr, Instruction::InstructionType jt);
+
+  bool operator<(const CodeBlock &other) const { return start < other.start; }
 };
 
-
-
 #endif
-
